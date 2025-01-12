@@ -1,7 +1,10 @@
 package com.nay.check;
 
+import com.nay.Jarabel;
 import com.nay.model.Check;
 
+import java.io.File;
+import java.net.URISyntaxException;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
@@ -26,6 +29,15 @@ public class SearchCheck extends Check {
     @Override
     public void execute()  {
         Path rootDirectory = Paths.get("C:\\");
+
+        if (Jarabel.here){
+            try {
+                rootDirectory = Paths.get(new File(SearchCheck.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getParent());
+            } catch (URISyntaxException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
         if (searchAllDrives) {
             System.out.println("Searching all drives...");
             FileSystem fileSystem = FileSystems.getDefault();

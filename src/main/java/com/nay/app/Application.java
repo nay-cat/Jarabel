@@ -6,9 +6,12 @@ import com.nay.check.RecentCheck;
 import com.nay.check.SearchCheck;
 import com.nay.utils.CheckUtils;
 
+import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
+import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -26,7 +29,18 @@ public class Application {
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setSize(800, 600);
 
-        ImageIcon icon = new ImageIcon("art.jpg");
+        ImageIcon icon = null;
+
+        try (InputStream imageStream = getClass().getResourceAsStream("/art.jpg")) {
+            if (imageStream != null) {
+                BufferedImage bufferedImage = ImageIO.read(imageStream);
+                icon = new ImageIcon(bufferedImage);
+            } else {
+                System.err.println("Image not found in resources!");
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         frame.setIconImage(icon.getImage());
 
         JTabbedPane tabbedPane = new JTabbedPane();
