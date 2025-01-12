@@ -6,20 +6,21 @@ Jarabel helps you locate all `.jar` files (or most of them) on a computer. It al
 
 ### How to Use
 
+- **Scans only the C drive.**
 ```bash
 java -jar Jarabel-1.0.jar
 ```
-- **Scans only the C drive.**
+---
 
+- **Scans all available drives.**
 ```bash
 java -jar Jarabel-1.0.jar -a
 ```
-- **Scans all available drives.**
-
+---
+- **Only scans the folder where Jarabel is, for example, you could put Jarabel in a mods folder to just inspect the mods**
 ```bash
 java -jar Jarabel-1.0.jar -here
 ```
-- **Only scans the folder where Jarabel is, for example, you could put Jarabel in a mods folder to just inspect the mods**
 
 ### Features
 
