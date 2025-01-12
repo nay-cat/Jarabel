@@ -32,7 +32,7 @@ public class CheckUtils {
 
     public static void collectJarFiles(Path rootDirectory) {
         try {
-            Files.walkFileTree(rootDirectory, new SimpleFileVisitor<>() {
+            Files.walkFileTree(rootDirectory, new SimpleFileVisitor<Path>() {
                 @Override
                 public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
                     if (file.toString().endsWith(".jar")) {

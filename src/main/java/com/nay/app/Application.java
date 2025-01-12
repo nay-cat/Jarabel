@@ -19,13 +19,14 @@ import java.util.Enumeration;
 import java.util.List;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
+import java.util.stream.Collectors;
 
 import static com.nay.utils.CheckUtils.x;
 
 public class Application {
 
     public void createAndShowGUI() {
-        JFrame frame = new JFrame("Jarabell");
+        JFrame frame = new JFrame("Jarabel");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setSize(800, 600);
 
@@ -45,7 +46,7 @@ public class Application {
 
         JTabbedPane tabbedPane = new JTabbedPane();
 
-        tabbedPane.addTab("Jars", createPanelForList(SearchCheck.jarFiles.stream().toList()));
+        tabbedPane.addTab("Jars", createPanelForList(j8(SearchCheck.jarFiles.stream())));
         tabbedPane.addTab("Maven", createPanelForList(CheckUtils.mavenList));
         tabbedPane.addTab("Gradle", createPanelForList(CheckUtils.gradleList));
         tabbedPane.addTab("Forge", createPanelForList(CheckUtils.forgeList));
@@ -65,6 +66,10 @@ public class Application {
 
         frame.add(tabbedPane, BorderLayout.CENTER);
         frame.setVisible(true);
+    }
+
+    private static <T> List<T> j8(java.util.stream.Stream<T> stream) {
+        return stream.collect(Collectors.toList());
     }
 
     private JPanel createPanelForList(List<Path> jarList) {
