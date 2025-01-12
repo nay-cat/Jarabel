@@ -1,4 +1,4 @@
----
+
 
 > **Jarabel** is a program still under development and currently works only with **Java 17**.
 
@@ -33,4 +33,4 @@ java -jar Jarabel-1.0.jar -a
 
 > The code is still **under development**, and optimization is needed. Performance may vary depending on the user's environment and computer specifications.
 
----
+
