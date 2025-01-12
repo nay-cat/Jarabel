@@ -35,3 +35,6 @@ java -jar Jarabel-1.0.jar -a
 
 > If the anti-virus pops up it is because of the dcomcheck executable, delete it and the program will still work, but the DcomLaunch section will not be present, the .exe is not dangerous but it interacts with the process memory.
 
+![image](https://github.com/user-attachments/assets/323862db-a222-429b-8cb9-5139b58a5380)
+![image](https://github.com/user-attachments/assets/f8ba870b-ee23-4221-84df-2a3ecbe5587d)
+![image](https://github.com/user-attachments/assets/9235d72f-3bae-4d39-93e2-b48bc05e1076)
