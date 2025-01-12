@@ -1,5 +1,6 @@
 package com.nay.app;
 
+import com.formdev.flatlaf.FlatDarkLaf;
 import com.nay.check.DcomCheck;
 import com.nay.check.PrefetchCheck;
 import com.nay.check.RecentCheck;
@@ -30,6 +31,23 @@ public class Application {
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setSize(800, 600);
 
+        try {
+            for (UIManager.LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
+                if ("Nimbus".equals(info.getName())) {
+                    UIManager.setLookAndFeel(info.getClassName());
+                    UIManager.setLookAndFeel(new FlatDarkLaf());
+
+                    break;
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        Color flatDarkBackground = UIManager.getColor("Panel.background");
+
+        frame.getContentPane().setBackground(flatDarkBackground);
+
         ImageIcon icon = null;
 
         try (InputStream imageStream = getClass().getResourceAsStream("/art.jpg")) {
@@ -45,6 +63,8 @@ public class Application {
         frame.setIconImage(icon.getImage());
 
         JTabbedPane tabbedPane = new JTabbedPane();
+        tabbedPane.setBackground(Color.DARK_GRAY);
+        tabbedPane.setForeground(Color.WHITE);
 
         tabbedPane.addTab("Jars", createPanelForList(j8(SearchCheck.jarFiles.stream())));
         tabbedPane.addTab("Maven", createPanelForList(CheckUtils.mavenList));
@@ -56,6 +76,8 @@ public class Application {
         tabbedPane.addTab("Prefetch", createPanelForList(PrefetchCheck.prefetchJars));
         tabbedPane.addTab("DcomLaunch", createPanelForList(DcomCheck.jarFiles));
         tabbedPane.addTab("Recents", createPanelForListString(RecentCheck.recentPathList));
+        tabbedPane.addTab("Runnable Jars", createPanelForList(CheckUtils.runnableJars));
+
 
         JLabel imageLabel = new JLabel(new ImageIcon(icon.getImage().getScaledInstance(64, 64, Image.SCALE_SMOOTH)));
         JLabel textLabel = new JLabel("Created by github.com/nay-cat @fluctua", JLabel.CENTER);

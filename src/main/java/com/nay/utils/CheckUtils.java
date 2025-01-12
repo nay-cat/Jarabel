@@ -29,6 +29,8 @@ public class CheckUtils {
     public static final List<Path> fabricList = Collections.synchronizedList(new ArrayList<>());
     public static final List<Path> mcpList = Collections.synchronizedList(new ArrayList<>());
     public static final List<Path> knownLibs = Collections.synchronizedList(new ArrayList<>());
+    public static final List<Path> runnableJars = Collections.synchronizedList(new ArrayList<>());
+
 
     public static void collectJarFiles(Path rootDirectory) {
         try {
@@ -111,6 +113,21 @@ public class CheckUtils {
                 knownLibs.add(jar);
             }
 
+            JarEntry manifestEntry = jarFile.getJarEntry("META-INF/MANIFEST.MF");
+            if (manifestEntry != null) {
+                try (InputStream inputStream = jarFile.getInputStream(manifestEntry);
+                     BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
+
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        if (line.startsWith("Main-Class:")) {
+                            runnableJars.add(jar);
+                            break;
+                        }
+                    }
+                }
+            }
+
             synchronized (System.out) {
                 System.out.println("Processed: " + jar +
                         " | Maven: " + isMaven +
@@ -119,7 +136,8 @@ public class CheckUtils {
                         " | Fabric: " + hasFabric +
                         " | MCP: " + hasMcp +
                         " | NativeHook: " + hasNativeHook +
-                        " | InputEvent: " + hasInputEvent);
+                        " | InputEvent: " + hasInputEvent +
+                        " | Runnable: " + runnableJars.contains(jar));
             }
         } catch (IOException e) {
             System.err.println("Failed to process: " + jar + " -> " + e.getMessage());
