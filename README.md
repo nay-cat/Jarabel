@@ -1,4 +1,4 @@
-
+The name comes from Jar + Abelle
 
 > **Jarabel** is a program still under development and currently works only with **Java 17**.
 
