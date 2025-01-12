@@ -1,7 +1,8 @@
 The name comes from Jar + Abelle
 
 ---
-> [Jarabel for Java 8](https://github.com/nay-cat/Jarabel/releases/download/1.0.3/Jarabel.1.0.3.rar)
+⭐ Recommended
+> [Jarabel for Java 8](https://github.com/nay-cat/Jarabel/releases/download/1.0.4/Jarabel.1.0.4.rar)
 ---
 > [Jarabel compatible with Java 17+](https://github.com/nay-cat/Jarabel/releases/download/1.0.2/Jarabel.1.0.2.rar)
 ---
