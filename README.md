@@ -7,6 +7,10 @@ The name comes from Jar + Abelle
 > [Jarabel compatible with Java 17+](https://github.com/nay-cat/Jarabel/releases/download/1.0.2/Jarabel.1.0.2.rar)
 ---
 
+```diff
+- Red means that the degree of obfuscation is suspicious, it does NOT mean or ASSURE that it is a cheat.
+```
+
 Jarabel helps you locate all `.jar` files (or most of them) on a computer. It also uses various checks to simplify or provide detailed information.
 
 ### How to Use
