@@ -13,6 +13,9 @@ public class CheckService implements Service {
 
     @Override
     public void start() {
-        checks.forEach(Check::execute);
+        checks.forEach(check -> {
+            System.out.println("Executing: "+check.getName());
+            check.execute();
+        });
     }
 }

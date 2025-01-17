@@ -46,7 +46,7 @@ public class CheckUtils {
 
                 @Override
                 public FileVisitResult visitFileFailed(Path file, IOException exc) {
-                    System.err.println("Cannot access: " + file + " -> " + exc.getMessage());
+                    //System.err.println("Cannot access: " + file + " -> " + exc.getMessage());
                     return FileVisitResult.SKIP_SUBTREE;
                 }
             });
@@ -62,7 +62,7 @@ public class CheckUtils {
                 try {
                     analyzeJar(jar);
                 } catch (Exception e) {
-                    System.err.println("Error analyzing JAR: " + jar + " -> " + e.getMessage());
+                    //System.err.println("Error analyzing JAR: " + jar + " -> " + e.getMessage());
                 }
                 return null;
             });
@@ -106,7 +106,6 @@ public class CheckUtils {
                     }
                 }
                 // check removed bc laggy as fuck
-                if (hasNativeHook && hasInputEvent) break;
             }
 
             if (hasNativeHook || hasInputEvent) {
@@ -128,17 +127,6 @@ public class CheckUtils {
                 }
             }
 
-            synchronized (System.out) {
-                System.out.println("Processed: " + jar +
-                        " | Maven: " + isMaven +
-                        " | Gradle: " + isGradle +
-                        " | Forge: " + hasForge +
-                        " | Fabric: " + hasFabric +
-                        " | MCP: " + hasMcp +
-                        " | NativeHook: " + hasNativeHook +
-                        " | InputEvent: " + hasInputEvent +
-                        " | Runnable: " + runnableJars.contains(jar));
-            }
         } catch (IOException e) {
             System.err.println("Failed to process: " + jar + " -> " + e.getMessage());
         }
@@ -188,13 +176,13 @@ public class CheckUtils {
     }
 
     public static double y(String d) {
-        int[] e = new int[256];
+        Map<Character, Integer> frequencyMap = new HashMap<>();
         for (char f : d.toCharArray()) {
-            e[f]++;
+            frequencyMap.put(f, frequencyMap.getOrDefault(f, 0) + 1);
         }
 
         double g = 0;
-        for (int h : e) {
+        for (int h : frequencyMap.values()) {
             if (h > 0) {
                 double i = (double) h / d.length();
                 g -= i * (Math.log(i) / Math.log(2));
@@ -203,37 +191,19 @@ public class CheckUtils {
         return g;
     }
 
+    public static List<String> extractMethods(JarFile jarFile) throws IOException {
+        List<String> methods = new ArrayList<>();
+        Enumeration<JarEntry> entries = jarFile.entries();
 
-    public static class CustomCellRenderer extends DefaultListCellRenderer {
-        @Override
-        public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
-            Component component = super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
-            if (value instanceof Path) {
-                Path path = (Path) value;
-                try {
-                    long fileSizeInBytes = Files.size(path);
-                    if (fileSizeInBytes < 8 * 1024 * 1024) {
-                        JarFile jarFile = new JarFile(path.toFile());
-                        List<String> methods = new ArrayList<>();
-                        Enumeration<JarEntry> entries = jarFile.entries();
-
-                        while (entries.hasMoreElements()) {
-                            JarEntry entry = entries.nextElement();
-                            if (entry.getName().endsWith(".class")) {
-                                methods.add(entry.getName());
-                            }
-                        }
-                        double obfuscationDegree = x(methods);
-                        if (obfuscationDegree >= 3.1 && obfuscationDegree <= 3.5) {
-                            setForeground(Color.RED);
-                        }
-                    }
-                } catch (IOException e) {
-                }
+        while (entries.hasMoreElements()) {
+            JarEntry entry = entries.nextElement();
+            if (entry.getName().endsWith(".class")) {
+                methods.add(entry.getName());
             }
-            return component;
         }
+        return methods;
     }
+
 }
 
 

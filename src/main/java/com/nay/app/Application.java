@@ -1,27 +1,30 @@
 package com.nay.app;
 
 import com.formdev.flatlaf.FlatDarkLaf;
-import com.nay.check.DcomCheck;
-import com.nay.check.PrefetchCheck;
-import com.nay.check.RecentCheck;
-import com.nay.check.SearchCheck;
+import com.nay.Jarabel;
+import com.nay.check.*;
+import com.nay.manager.JournalManager;
+import com.nay.model.JarDetails;
 import com.nay.utils.CheckUtils;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Enumeration;
+import java.util.*;
 import java.util.List;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.stream.Collectors;
 
+import static com.nay.utils.CheckUtils.extractMethods;
 import static com.nay.utils.CheckUtils.x;
 
 public class Application {
@@ -66,18 +69,20 @@ public class Application {
         tabbedPane.setBackground(Color.DARK_GRAY);
         tabbedPane.setForeground(Color.WHITE);
 
-        tabbedPane.addTab("Jars", createPanelForList(j8(SearchCheck.jarFiles.stream())));
-        tabbedPane.addTab("Maven", createPanelForList(CheckUtils.mavenList));
-        tabbedPane.addTab("Gradle", createPanelForList(CheckUtils.gradleList));
-        tabbedPane.addTab("Forge", createPanelForList(CheckUtils.forgeList));
-        tabbedPane.addTab("Fabric", createPanelForList(CheckUtils.fabricList));
-        tabbedPane.addTab("MCP", createPanelForList(CheckUtils.mcpList));
-        tabbedPane.addTab("Libs", createPanelForList(CheckUtils.knownLibs));
-        tabbedPane.addTab("Prefetch", createPanelForList(PrefetchCheck.prefetchJars));
-        tabbedPane.addTab("DcomLaunch", createPanelForList(DcomCheck.jarFiles));
+        tabbedPane.addTab("Jars", panel(j8(SearchCheck.jarFiles.stream())));
+        tabbedPane.addTab("Maven", panel(CheckUtils.mavenList));
+        tabbedPane.addTab("Gradle", panel(CheckUtils.gradleList));
+        tabbedPane.addTab("Forge", panel(CheckUtils.forgeList));
+        tabbedPane.addTab("Fabric", panel(CheckUtils.fabricList));
+        tabbedPane.addTab("MCP", panel(CheckUtils.mcpList));
+        tabbedPane.addTab("Libs", panel(CheckUtils.knownLibs));
+        tabbedPane.addTab("Prefetch", panel(PrefetchCheck.prefetchJars));
+        tabbedPane.addTab("DcomLaunch", panel(DcomCheck.jarFiles));
         tabbedPane.addTab("Recents", createPanelForListString(RecentCheck.recentPathList));
-        tabbedPane.addTab("Runnable Jars", createPanelForList(CheckUtils.runnableJars));
-
+        tabbedPane.addTab("Runnable Jars", panel(CheckUtils.runnableJars));
+        if (Jarabel.journal){
+            tabbedPane.addTab("Journal", createPanelForListString(JournalManager.getProcessJarRecords(JournalCheck.jarRecordsList)));
+        }
 
         JLabel imageLabel = new JLabel(new ImageIcon(icon.getImage().getScaledInstance(64, 64, Image.SCALE_SMOOTH)));
         JLabel textLabel = new JLabel("Created by github.com/nay-cat @fluctua", JLabel.CENTER);
@@ -85,7 +90,6 @@ public class Application {
 
         frame.add(imageLabel, BorderLayout.NORTH);
         frame.add(textLabel, BorderLayout.SOUTH);
-
         frame.add(tabbedPane, BorderLayout.CENTER);
         frame.setVisible(true);
     }
@@ -94,21 +98,37 @@ public class Application {
         return stream.collect(Collectors.toList());
     }
 
-    private JPanel createPanelForList(List<Path> jarList) {
+    private JPanel panel(List<Path> jarList) {
         JPanel panel = new JPanel(new BorderLayout());
 
-        DefaultListModel<Path> listModel = new DefaultListModel<>();
-        jarList.forEach(listModel::addElement);
-        JList<Path> list = new JList<>(listModel);
-        list.setCellRenderer(new CheckUtils.CustomCellRenderer());
-        JScrollPane scrollPane = new JScrollPane(list);
+        DefaultListModel<JarDetails> jarDetailsModel = new DefaultListModel<>();
+        jarList.forEach(path -> {
+            File file = path.toFile();
+            jarDetailsModel.addElement(new JarDetails(path, file.length(), file.lastModified()));
+        });
+
+        JList<JarDetails> jarDetailsList = new JList<>(jarDetailsModel);
+        jarDetailsList.setCellRenderer(new Render());
+        Render.enableContextMenu(jarDetailsList);
+
+        JScrollPane scrollPane = new JScrollPane(jarDetailsList);
         panel.add(scrollPane, BorderLayout.CENTER);
 
-        JPanel topPanel = new JPanel(new FlowLayout());
-        JLabel filterLabel = new JLabel("Filter by:");
+        JPanel topPanel = new JPanel(new BorderLayout());
+
+        JTextField searchField = new JTextField();
+        JComboBox<String> sortComboBox = new JComboBox<>(new String[]{
+                "Default", "Size (Ascending)", "Size (Descending)",
+                "Last Used (Ascending)", "Last Used (Descending)"
+        });
         JComboBox<String> filterComboBox = new JComboBox<>(new String[]{"File size", "Obfuscation degree"});
-        topPanel.add(filterLabel);
-        topPanel.add(filterComboBox);
+
+        JPanel searchAndFilterPanel = new JPanel(new BorderLayout());
+        searchAndFilterPanel.add(searchField, BorderLayout.CENTER);
+        searchAndFilterPanel.add(sortComboBox, BorderLayout.EAST);
+        searchAndFilterPanel.add(filterComboBox, BorderLayout.WEST);
+
+        topPanel.add(searchAndFilterPanel, BorderLayout.CENTER);
         panel.add(topPanel, BorderLayout.NORTH);
 
         JPanel buttonPanel = new JPanel(new FlowLayout());
@@ -116,13 +136,66 @@ public class Application {
         JButton searchMethodsButton = new JButton("Search classes/methods");
         buttonPanel.add(analyzeButton);
         buttonPanel.add(searchMethodsButton);
-
         panel.add(buttonPanel, BorderLayout.SOUTH);
 
+        searchField.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyReleased(KeyEvent e) {
+                String query = searchField.getText().toLowerCase();
+                DefaultListModel<JarDetails> filteredModel = new DefaultListModel<>();
+
+                jarList.stream()
+                        .filter(path -> path.getFileName().toString().toLowerCase().contains(query))
+                        .forEach(path -> {
+                            File file = path.toFile();
+                            filteredModel.addElement(new JarDetails(path, file.length(), file.lastModified()));
+                        });
+
+                jarDetailsList.setModel(filteredModel);
+            }
+        });
+
+        sortComboBox.addActionListener(e -> {
+            String sortOrder = (String) sortComboBox.getSelectedItem();
+            List<JarDetails> sortedList = new ArrayList<>();
+
+            for (int i = 0; i < jarDetailsModel.size(); i++) {
+                sortedList.add(jarDetailsModel.get(i));
+            }
+
+            switch (sortOrder) {
+                case "Size (Ascending)":
+                    sortedList.sort(Comparator.comparingLong(JarDetails::getSize));
+                    break;
+                case "Size (Descending)":
+                    sortedList.sort(Comparator.comparingLong(JarDetails::getSize).reversed());
+                    break;
+                case "Last Used (Ascending)":
+                    sortedList.sort(Comparator.comparingLong(JarDetails::getLastModified));
+                    break;
+                case "Last Used (Descending)":
+                    sortedList.sort(Comparator.comparingLong(JarDetails::getLastModified).reversed());
+                    break;
+            }
+
+            DefaultListModel<JarDetails> sortedModel = new DefaultListModel<>();
+            sortedList.forEach(sortedModel::addElement);
+            jarDetailsList.setModel(sortedModel);
+        });
+
+        filterComboBox.addActionListener(e -> {
+            String selectedFilter = (String) filterComboBox.getSelectedItem();
+            if ("File size".equals(selectedFilter)) {
+                applyFileSizeFilter(jarList, jarDetailsModel);
+            } else if ("Obfuscation degree".equals(selectedFilter)) {
+                applyObfuscationDegreeFilter(jarList, jarDetailsModel);
+            }
+        });
+
         analyzeButton.addActionListener(e -> {
-            Path selectedJar = list.getSelectedValue();
+            JarDetails selectedJar = jarDetailsList.getSelectedValue();
             if (selectedJar != null) {
-                analyzeJar(selectedJar);
+                analyzeJar(selectedJar.getPath());
             } else {
                 JOptionPane.showMessageDialog(panel, "No JAR selected!", "Error", JOptionPane.ERROR_MESSAGE);
             }
@@ -143,59 +216,29 @@ public class Application {
                 searchFrame.setSize(600, 400);
 
                 JPanel searchPanel = new JPanel(new BorderLayout());
-                JTextField searchField = new JTextField();
+                JTextField methodSearchField = new JTextField();
                 DefaultListModel<String> methodsModel = new DefaultListModel<>();
                 allMethods.forEach(methodsModel::addElement);
                 JList<String> methodsList = new JList<>(methodsModel);
                 JScrollPane methodsScrollPane = new JScrollPane(methodsList);
 
-                searchPanel.add(searchField, BorderLayout.NORTH);
+                searchPanel.add(methodSearchField, BorderLayout.NORTH);
                 searchPanel.add(methodsScrollPane, BorderLayout.CENTER);
 
+                methodSearchField.addActionListener(event -> performSearch(methodSearchField, methodsModel, methodsList, searchFrame));
                 JButton searchButton = new JButton("Search");
                 searchPanel.add(searchButton, BorderLayout.SOUTH);
 
-                searchButton.addActionListener(event -> {
-                    String query = searchField.getText().toLowerCase(); // Obtener el texto de búsqueda
-                    if (!query.isEmpty()) {
-                        DefaultListModel<String> filteredMethodsModel = new DefaultListModel<>();
-
-                        for (int i = 0; i < methodsModel.getSize(); i++) {
-                            String method = methodsModel.get(i);
-                            if (method.toLowerCase().contains(query)) {
-                                filteredMethodsModel.addElement(method);
-                            }
-                        }
-
-                        methodsList.setModel(filteredMethodsModel);
-
-                        if (!filteredMethodsModel.isEmpty()) {
-                            methodsList.setSelectedIndex(0);
-                            methodsList.ensureIndexIsVisible(0);
-                        } else {
-                            JOptionPane.showMessageDialog(searchFrame, "No methods found matching: " + query, "Search Results", JOptionPane.INFORMATION_MESSAGE);
-                        }
-                    } else {
-                        JOptionPane.showMessageDialog(searchFrame, "Please enter a method name to search.", "Input Error", JOptionPane.ERROR_MESSAGE);
-                    }
-                });
+                searchButton.addActionListener(event -> performSearch(methodSearchField, methodsModel, methodsList, searchFrame));
 
                 searchFrame.add(searchPanel);
                 searchFrame.setVisible(true);
             });
         });
 
-        filterComboBox.addActionListener(e -> {
-            String selectedFilter = (String) filterComboBox.getSelectedItem();
-            if ("File size".equals(selectedFilter)) {
-                applyFileSizeFilter(jarList, listModel);
-            } else if ("Obfuscation degree".equals(selectedFilter)) {
-                applyObfuscationDegreeFilter(jarList, listModel);
-            }
-        });
-
         return panel;
     }
+
 
     private JPanel createPanelForListString(List<String> stringList) {
         JPanel panel = new JPanel(new BorderLayout());
@@ -215,13 +258,40 @@ public class Application {
         return panel;
     }
 
-    private void applyFileSizeFilter(List<Path> jarList, DefaultListModel<Path> listModel) {
+    private void performSearch(JTextField searchField, DefaultListModel<String> methodsModel, JList<String> methodsList, JFrame searchFrame) {
+        String query = searchField.getText().toLowerCase(); // Obtener la búsqueda
+        if (!searchField.getText().isEmpty()) {
+            DefaultListModel<String> filteredMethodsModel = new DefaultListModel<>();
+            for (int i = 0; i < methodsModel.getSize(); i++) {
+                String method = methodsModel.get(i);
+                if (method.toLowerCase().contains(query)) {
+                    // meter los colores, debo quitar los <br> cuando pueda
+                    filteredMethodsModel.addElement("<html>" + method.replaceAll("(?i)(" + query + ")", "<span style='background:yellow;'>$1</span>") + "</html>");
+                }
+            }
+
+            methodsList.setModel(filteredMethodsModel);
+
+            if (!filteredMethodsModel.isEmpty()) {
+                methodsList.setSelectedIndex(0);
+                methodsList.ensureIndexIsVisible(0);
+            } else {
+                JOptionPane.showMessageDialog(searchFrame, "No methods founds " + query);
+            }
+        } else {
+            JOptionPane.showMessageDialog(searchFrame, "Inupt error");
+        }
+    }
+
+    private void applyFileSizeFilter(List<Path> jarList, DefaultListModel<JarDetails> listModel) {
         listModel.clear();
         for (Path jar : jarList) {
             try {
                 long fileSizeInBytes = Files.size(jar);
+                // 8.388.608
                 if (fileSizeInBytes < 8 * 1024 * 1024) {
-                    listModel.addElement(jar);
+                    File file = jar.toFile();
+                    listModel.addElement(new JarDetails(jar, fileSizeInBytes, file.lastModified()));
                 }
             } catch (IOException e) {
                 System.err.println("Error reading file size: " + jar + " - " + e.getMessage());
@@ -229,15 +299,17 @@ public class Application {
         }
     }
 
-    private void applyObfuscationDegreeFilter(List<Path> jarList, DefaultListModel<Path> listModel) {
+    private void applyObfuscationDegreeFilter(List<Path> jarList, DefaultListModel<JarDetails> listModel) {
         listModel.clear();
         for (Path jar : jarList) {
             try (JarFile jarFile = new JarFile(jar.toFile())) {
+                // 16.777.216
                 if (Files.size(jar) < 16 * 1024 * 1024) {
                     List<String> methods = extractMethods(jarFile);
                     double obfuscationDegree = x(methods);
                     if (obfuscationDegree >= 3.1 && obfuscationDegree <= 3.5) {
-                        listModel.addElement(jar);
+                        File file = jar.toFile();
+                        listModel.addElement(new JarDetails(jar, file.length(), file.lastModified()));
                     }
                 }
             } catch (IOException e) {
@@ -264,19 +336,6 @@ public class Application {
         } catch (IOException e) {
             JOptionPane.showMessageDialog(null, "Failed to analyze JAR: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
         }
-    }
-
-    private List<String> extractMethods(JarFile jarFile) throws IOException {
-        List<String> methods = new ArrayList<>();
-        Enumeration<JarEntry> entries = jarFile.entries();
-
-        while (entries.hasMoreElements()) {
-            JarEntry entry = entries.nextElement();
-            if (entry.getName().endsWith(".class")) {
-                methods.add(entry.getName());
-            }
-        }
-        return methods;
     }
 
 }
