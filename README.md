@@ -31,6 +31,12 @@ java -jar Jarabel-1.0.jar -a
 java -jar Jarabel-1.0.jar -here
 ```
 
+---
+- **Scan Journal (will make the program take ~5 minutes to start bc shitty code)**
+```bash
+java -jar Jarabel-1.0.jar -enableJournal
+```
+
 ### Features
 
 | **Feature**                                        | **Description**                                                                                          |
