@@ -4,8 +4,6 @@ The name comes from Jar + Abelle
 ⭐ Recommended
 > [Jarabel for Java 8](https://github.com/nay-cat/Jarabel/releases/download/1.0.4/Jarabel.1.0.4.rar)
 ---
-> [Jarabel compatible with Java 17+](https://github.com/nay-cat/Jarabel/releases/download/1.0.2/Jarabel.1.0.2.rar)
----
 
 ```diff
 - Red means that the degree of obfuscation is suspicious, it does NOT mean or ASSURE that it is a cheat.
