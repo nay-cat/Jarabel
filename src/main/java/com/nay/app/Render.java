@@ -32,12 +32,12 @@ public class Render extends DefaultListCellRenderer {
             double obfuscationDegree = calculateObfuscationDegree(jarDetails);
 
             String obfuscationText = "";
-            if (obfuscationDegree >= 3.1 && obfuscationDegree <= 3.5) {
+            if (obfuscationDegree >= 3.05 && obfuscationDegree <= 3.5) {
                 obfuscationText = " <font color='red'><b>HIGH OBFUSCATION DEGREE DETECTED</b></font>";
             }
 
             label.setText(String.format(
-                    "<html><b>%s</b> - <font color='#6e6e6e'>Size: %.2f MB</font> - <font color='green'>Last Used: %s</font><br><font color='#ffffff'>%s</font>%s</html>",
+                    "<html><b>%s</b> - <font color='#6e6e6e'>Size: %.2f MB</font> - <font color='#32CD32'>Last Used: %s</font><br><font color='#ffffff'>%s</font>%s</html>",
                     fileName, sizeInMb, lastUsed, path, obfuscationText
             ));
         }

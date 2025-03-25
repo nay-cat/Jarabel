@@ -212,7 +212,7 @@ public class Application {
                     }
                 }
 
-                JFrame searchFrame = new JFrame("Search Methods");
+                JFrame searchFrame = new JFrame("Search Classes");
                 searchFrame.setSize(600, 400);
 
                 JPanel searchPanel = new JPanel(new BorderLayout());
@@ -276,7 +276,7 @@ public class Application {
                 methodsList.setSelectedIndex(0);
                 methodsList.ensureIndexIsVisible(0);
             } else {
-                JOptionPane.showMessageDialog(searchFrame, "No methods founds " + query);
+                JOptionPane.showMessageDialog(searchFrame, "No classes founds " + query);
             }
         } else {
             JOptionPane.showMessageDialog(searchFrame, "Inupt error");

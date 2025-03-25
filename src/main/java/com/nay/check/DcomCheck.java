@@ -35,7 +35,6 @@ public class DcomCheck extends Check {
             throw new RuntimeException(e);
         }
 
-        // you should search what a "acrocordon" is
         try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
             String line;
             Pattern jarPattern = Pattern.compile(".*\"([^\"]+\\.jar)\".*");
