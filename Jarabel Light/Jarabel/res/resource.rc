@@ -1,0 +1,4 @@
+#include "resource.h"
+IDR_NIJIKA_JPG JPG "nijika.jpg"
+IDI_APP_ICON ICON "nijika.ico"
+
