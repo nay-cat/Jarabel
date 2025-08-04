@@ -230,6 +230,22 @@ public class Application {
                 searchPanel.add(searchButton, BorderLayout.SOUTH);
 
                 searchButton.addActionListener(event -> performSearch(methodSearchField, methodsModel, methodsList, searchFrame));
+                searchFrame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+
+                searchFrame.addWindowListener(new java.awt.event.WindowAdapter() {
+                    @Override
+                    public void windowClosing(java.awt.event.WindowEvent windowEvent) {
+                        allMethods.clear();
+                        methodsModel.clear();
+                        methodsList.setModel(new DefaultListModel<>());
+
+                        searchFrame.dispose();
+
+                        // esto esuna oración no una orden
+                        System.gc();
+                        System.runFinalization();
+                    }
+                });
 
                 searchFrame.add(searchPanel);
                 searchFrame.setVisible(true);
