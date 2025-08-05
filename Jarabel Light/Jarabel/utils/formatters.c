@@ -64,11 +64,11 @@ void __cdecl FormatFileSize(ULARGE_INTEGER size, WCHAR* __restrict buffer, size_
     }
 }
 
-__forceinline double __cdecl CalculateShannonEntropy(const char* __restrict str) {
-    if (!str || !*str) return 0.0;
+// doesnt take into account null-terminated strings, but calling code in jar_scanner/jar_scanner.c does
+static __forceinline double __cdecl CalculateShannonEntropy(const char* __restrict str, size_t len) {
+    if (!str || len == 0) return 0.0;
 
     unsigned int frequencies[256] = { 0 };
-    size_t len = strlen(str);
 
     for (size_t i = 0; i < len; ++i) {
         frequencies[(unsigned char)str[i]]++;
@@ -89,8 +89,11 @@ double __cdecl CalculateAverageEntropy(char** __restrict stringList, int count) 
     if (!stringList || count == 0) return 0.0;
 
     double totalEntropy = 0.0;
-    for (int i = 0; i < count; ++i) {
-        totalEntropy += CalculateShannonEntropy(stringList[i]);
+    for (int i = 0; i < count; i++) {
+        if (stringList[i]) {
+            size_t len = strnlen_s(stringList[i], MAX_PATH);
+            totalEntropy += CalculateShannonEntropy(stringList[i], len);
+        }
     }
 
     return totalEntropy / count;

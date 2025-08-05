@@ -1,8 +1,9 @@
 #include "../core/app.h"
 
 void RepopulateActiveList() {
-    int iPage = TabCtrl_GetCurSel(hTab); 
-    int filterType = ComboBox_GetCurSel(hFilterComboBox); 
+    int iPage = TabCtrl_GetCurSel(hTab);
+    int filterType = ComboBox_GetCurSel(hFilterComboBox);
+    BOOL isUsn = FALSE;
 
     MasterList* pList = NULL;
     HWND hList = NULL, hSearch = NULL;
@@ -16,15 +17,17 @@ void RepopulateActiveList() {
     case 6: pList = &g_libsMasterList; hList = hLibsList; hSearch = hSearchLibs; break;
     case 7: pList = &g_runnableJarsMasterList; hList = hRunnableJarsList; hSearch = hSearchRunnableJars; break;
     case 8: pList = &g_classesMasterList; hList = hJarList; hSearch = hSearchClasses; filterType = 0; break;
+    case 9: pList = &g_journalMasterList; hList = hJournalList; hSearch = hSearchJournal; isUsn = TRUE; filterType = 0; break;
     case 10: pList = &g_recentMasterList; hList = hRecentList; hSearch = hSearchRecent; filterType = 0; break;
     case 11: pList = &g_prefetchMasterList; hList = hPrefetchList; hSearch = hSearchPrefetch; filterType = 0; break;
     case 12: pList = &g_processesMasterList; hList = hProcessList; hSearch = hSearchProcesses; filterType = 0; break;
     }
 
     if (pList) {
-        FilterAndRepopulateListView(hSearch, hList, pList, FALSE, filterType);
+        FilterAndRepopulateListView(hSearch, hList, pList, isUsn, filterType);
     }
 }
+
 
 void HandleAppResize(LPARAM lParam) {
     int width = LOWORD(lParam);
@@ -90,7 +93,7 @@ void HandleAppResize(LPARAM lParam) {
 }
 
 void ToggleDarkMode(HWND hwnd) {
-    g_isDarkMode = !g_isDarkMode; 
+    g_isDarkMode = !g_isDarkMode;
 
     SetClassLongPtrW(hwnd, GCLP_HBRBACKGROUND, (LONG_PTR)(g_isDarkMode ? g_darkBrush : g_lightBrush));
 
@@ -122,8 +125,8 @@ void HandleTabChange() {
     int iPage = TabCtrl_GetCurSel(hTab);
 
     BOOL showMainTabUI = (iPage == 0);
-    BOOL showSort = (iPage >= 1 && iPage != 9); 
-    BOOL showFilter = (iPage >= 1 && iPage <= 7); 
+    BOOL showSort = (iPage >= 1 && iPage != 9);
+    BOOL showFilter = (iPage >= 1 && iPage <= 7);
 
     ShowWindow(hTitleLabel, showMainTabUI ? SW_SHOW : SW_HIDE);
     ShowWindow(hDescLabel, showMainTabUI ? SW_SHOW : SW_HIDE);
@@ -169,7 +172,7 @@ void HandleTabChange() {
 
 void HandleSmoothScroll(WPARAM wParam) {
     int delta = GET_WHEEL_DELTA_WPARAM(wParam);
-    int scrollAmount = (delta > 0) ? -40 : 40; 
+    int scrollAmount = (delta > 0) ? -40 : 40;
 
     int iPage = TabCtrl_GetCurSel(hTab);
     HWND hCurrentList = NULL;
