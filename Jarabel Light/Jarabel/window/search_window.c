@@ -93,20 +93,15 @@ static BOOL GetClassEntryForIndex(int globalIndex, ClassEntry* pEntry) {
 
     if (indexInJar >= 0 && indexInJar < g_cachedClassNames.count) {
         char* classNameAnsi = (char*)g_cachedClassNames.items[indexInJar];
-        if (!classNameAnsi) return FALSE;
-
-        size_t cchAnsi = strnlen_s(classNameAnsi, MAX_PATH);
-        if (cchAnsi == 0 || cchAnsi >= MAX_PATH) return FALSE;
-
-        int requiredChars = MultiByteToWideChar(CP_UTF8, 0, classNameAnsi, (int)cchAnsi, NULL, 0);
-
-        if (requiredChars == 0 || (requiredChars + 1) > MAX_PATH) {
+        if (!classNameAnsi) {
             return FALSE;
         }
 
-        MultiByteToWideChar(CP_UTF8, 0, classNameAnsi, (int)cchAnsi, pEntry->className, MAX_PATH);
+        int charsWritten = MultiByteToWideChar(CP_UTF8, 0, classNameAnsi, -1, pEntry->className, MAX_PATH);
 
-        pEntry->className[requiredChars] = L'\0';
+        if (charsWritten == 0) {
+            return FALSE;
+        }
 
         wcscpy_s(pEntry->parentJar, MAX_PATH, PathFindFileNameW(targetJarInfo->jarPath));
         return TRUE;
