@@ -97,7 +97,14 @@ static BOOL GetClassEntryForIndex(int globalIndex, ClassEntry* pEntry) {
             return FALSE;
         }
 
-        int charsWritten = MultiByteToWideChar(CP_UTF8, 0, classNameAnsi, -1, pEntry->className, MAX_PATH);
+        size_t cchAnsi = strnlen_s(classNameAnsi, MAX_PATH);
+        if (cchAnsi == 0 || cchAnsi >= MAX_PATH) {
+            return FALSE;
+        }
+
+        int cbMultiByte = (int)cchAnsi + 1;
+
+        int charsWritten = MultiByteToWideChar(CP_UTF8, 0, classNameAnsi, cbMultiByte, pEntry->className, MAX_PATH);
 
         if (charsWritten == 0) {
             return FALSE;
