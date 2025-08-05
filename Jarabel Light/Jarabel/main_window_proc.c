@@ -106,7 +106,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                         if (pEntry) {
                             switch (identifier) {
                             case ID_MENU_COPY_NAME:
-                                // SAFE: Use wcsnlen_s to prevent buffer over-read.
                                 chars_to_copy = wcsnlen_s(pEntry->fileName, MAX_PATH);
                                 if (chars_to_copy > 0 && chars_to_copy < _countof(buffer)) {
                                     wcscpy_s(buffer, _countof(buffer), pEntry->fileName);
@@ -146,7 +145,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                             case ID_MENU_COPY_NAME:
                             {
                                 const WCHAR* filename = PathFindFileNameW(pInfo->szFilePath);
-                                // SAFE: Use wcsnlen_s. The size is bounded by MAX_PATH.
                                 chars_to_copy = wcsnlen_s(filename, MAX_PATH);
                                 if (chars_to_copy > 0 && chars_to_copy < _countof(buffer)) {
                                     wcscpy_s(buffer, _countof(buffer), filename);
@@ -156,7 +154,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                             case ID_MENU_COPY_PATH:
                             case ID_MENU_COPY_METHODS:
                             {
-                                // SAFE: Use wcsnlen_s to prevent buffer over-read.
                                 chars_to_copy = wcsnlen_s(pInfo->szFilePath, MAX_PATH);
                                 if (chars_to_copy > 0 && chars_to_copy < _countof(buffer)) {
                                     wcscpy_s(buffer, _countof(buffer), pInfo->szFilePath);
