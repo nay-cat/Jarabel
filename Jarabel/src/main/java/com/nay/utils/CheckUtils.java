@@ -22,6 +22,10 @@ import static com.nay.check.SearchCheck.*;
 
 public class CheckUtils {
 
+    /**
+     * I know that a lot of things here don't work or are extremely bad, but it was done in one afternoon and fuck, I'm never going to touch this again.
+     */
+
     // static static static clap clap clap
     public static final List<Path> mavenList = Collections.synchronizedList(new ArrayList<>());
     public static final List<Path> gradleList = Collections.synchronizedList(new ArrayList<>());
@@ -39,14 +43,12 @@ public class CheckUtils {
                 public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
                     if (file.toString().endsWith(".jar")) {
                         jarFiles.add(file);
-                        System.out.println("Found JAR: " + file);
                     }
                     return FileVisitResult.CONTINUE;
                 }
 
                 @Override
                 public FileVisitResult visitFileFailed(Path file, IOException exc) {
-                    //System.err.println("Cannot access: " + file + " -> " + exc.getMessage());
                     return FileVisitResult.SKIP_SUBTREE;
                 }
             });
@@ -62,7 +64,7 @@ public class CheckUtils {
                 try {
                     analyzeJar(jar);
                 } catch (Exception e) {
-                    //System.err.println("Error analyzing JAR: " + jar + " -> " + e.getMessage());
+                    System.out.println(e.getMessage());
                 }
                 return null;
             });
@@ -205,6 +207,3 @@ public class CheckUtils {
     }
 
 }
-
-
-
