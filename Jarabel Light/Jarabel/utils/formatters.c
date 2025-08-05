@@ -64,7 +64,7 @@ void __cdecl FormatFileSize(ULARGE_INTEGER size, WCHAR* __restrict buffer, size_
     }
 }
 
-// while this function itself does not contain safeguards against non-terminated strings, the calling code ensures this condition does not occur
+// doesnt take into account null-terminated strings, but calling code in jar_scanner/jar_scanner.c does
 static __forceinline double __cdecl CalculateShannonEntropy(const char* __restrict str, size_t len) {
     if (!str || len == 0) return 0.0;
 
@@ -90,8 +90,10 @@ double __cdecl CalculateAverageEntropy(char** __restrict stringList, int count) 
 
     double totalEntropy = 0.0;
     for (int i = 0; i < count; i++) {
-        size_t len = strlen(stringList[i]);
-        totalEntropy += CalculateShannonEntropy(stringList[i], len);
+        if (stringList[i]) {
+            size_t len = strnlen_s(stringList[i], MAX_PATH);
+            totalEntropy += CalculateShannonEntropy(stringList[i], len);
+        }
     }
 
     return totalEntropy / count;

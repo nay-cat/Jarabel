@@ -5,7 +5,6 @@ void __cdecl ProcessJarFile(HWND hListView, const WCHAR* __restrict jarPath) {
     FILE* file = NULL;
     char* centralDirBuffer = NULL;
     char** classNames = NULL;
-    FileInfo** localClassList = NULL;
     HCURSOR hOldCursor = SetCursor(LoadCursor(NULL, IDC_WAIT));
     int classCount = 0;
     BOOL eocdFound = FALSE;
@@ -44,8 +43,8 @@ void __cdecl ProcessJarFile(HWND hListView, const WCHAR* __restrict jarPath) {
 
     centralDirBuffer = (char*)malloc(eocd.dirSize);
     classNames = (char**)malloc(eocd.totalEntries * sizeof(char*));
-    localClassList = (FileInfo**)malloc(eocd.totalEntries * sizeof(FileInfo*));
-    if (!centralDirBuffer || !classNames || !localClassList) goto cleanup;
+
+    if (!centralDirBuffer || !classNames) goto cleanup;
 
     _fseeki64(file, eocd.dirOffset, SEEK_SET);
     if (fread(centralDirBuffer, 1, eocd.dirSize, file) != eocd.dirSize) goto cleanup;
@@ -73,7 +72,17 @@ void __cdecl ProcessJarFile(HWND hListView, const WCHAR* __restrict jarPath) {
                     memset(&pInfo->ftLastAccessTime, 0, sizeof(FILETIME));
                     pInfo->isObfuscated = FALSE;
                     pInfo->entropy = 0.0;
-                    localClassList[classCount] = pInfo;
+
+                    EnterCriticalSection(&g_listLock);
+                    AddToMasterList(&g_classesMasterList, pInfo);
+                    LeaveCriticalSection(&g_listLock);
+
+                    LVITEMW lvi = { 0 };
+                    lvi.mask = LVIF_PARAM;
+                    lvi.iItem = classCount;
+                    lvi.lParam = (LPARAM)pInfo;
+                    ListView_InsertItem(hListView, &lvi);
+
                     classCount++;
                 }
                 else {
@@ -84,24 +93,6 @@ void __cdecl ProcessJarFile(HWND hListView, const WCHAR* __restrict jarPath) {
         }
         p += entryDiskSize;
     }
-
-    // SendMessage with WM_SETREDRAW to prevent flickering during the bulk update
-    SendMessage(hListView, WM_SETREDRAW, FALSE, 0);
-
-    EnterCriticalSection(&g_listLock);
-    for (int i = 0; i < classCount; ++i) {
-        AddToMasterList(&g_classesMasterList, localClassList[i]);
-        LVITEMW lvi = { 0 };
-        lvi.mask = LVIF_PARAM;
-        lvi.iItem = i;
-        lvi.lParam = (LPARAM)localClassList[i];
-        ListView_InsertItem(hListView, &lvi);
-    }
-    LeaveCriticalSection(&g_listLock);
-
-    SendMessage(hListView, WM_SETREDRAW, TRUE, 0);
-    InvalidateRect(hListView, NULL, TRUE);
-    UpdateWindow(hListView);
 
     double entropy = (classCount > 0) ? CalculateAverageEntropy(classNames, classCount) : 0.0;
     WCHAR szEntropy[100];
@@ -115,7 +106,7 @@ cleanup:
         free(classNames);
     }
     free(centralDirBuffer);
-    free(localClassList);
+    // free(localClassList)
     SetCursor(hOldCursor);
 }
 

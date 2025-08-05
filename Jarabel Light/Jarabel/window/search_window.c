@@ -97,7 +97,8 @@ static BOOL GetClassEntryForIndex(int globalIndex, ClassEntry* pEntry) {
         if (requiredChars == 0 || requiredChars > MAX_PATH) {
             return FALSE;
         }
-        MultiByteToWideChar(CP_UTF8, 0, classNameAnsi, -1, pEntry->className, requiredChars);
+        // FIX: The last parameter must be the size of the destination buffer (in characters), not the required size.
+        MultiByteToWideChar(CP_UTF8, 0, classNameAnsi, -1, pEntry->className, MAX_PATH);
         wcscpy_s(pEntry->parentJar, MAX_PATH, PathFindFileNameW(targetJarInfo->jarPath));
         return TRUE;
     }
@@ -157,7 +158,11 @@ LRESULT CALLBACK GlobalSearchWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
             if (s_nClickedItem != -1) {
                 ClassEntry entry;
                 if (GetClassEntryForIndex(s_nClickedItem, &entry)) {
-                    CopyToClipboard(hwnd, entry.className, wcslen(entry.className));
+                    // FIX: Use wcsnlen_s for safety instead of wcslen.
+                    size_t len = wcsnlen_s(entry.className, MAX_PATH);
+                    if (len > 0 && len < MAX_PATH) {
+                        CopyToClipboard(hwnd, entry.className, len);
+                    }
                 }
             }
         }

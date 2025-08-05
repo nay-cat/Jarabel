@@ -117,15 +117,26 @@ void HandleJournalCheck(HWND hwnd) {
     WCHAR* pDrive = driveStrings;
     int itemIndex = 0;
     while (*pDrive) {
+        size_t remaining_size = MAX_PATH - (pDrive - driveStrings);
+        size_t len = wcsnlen_s(pDrive, remaining_size);
+
+        if (len == 0 || len >= remaining_size) {
+            break; 
+        }
+
         WCHAR fsNameBuffer[MAX_PATH];
         if (GetVolumeInformationW(pDrive, NULL, 0, NULL, NULL, NULL, fsNameBuffer, MAX_PATH) && wcscmp(fsNameBuffer, L"NTFS") == 0) {
             WCHAR volPath[MAX_PATH];
-            size_t len = wcslen(pDrive);
-            if (len > 0 && pDrive[len - 1] == L'\\') {
+            BOOL backslash_removed = FALSE;
+
+            if (pDrive[len - 1] == L'\\') {
                 pDrive[len - 1] = L'\0';
+                backslash_removed = TRUE;
             }
+
             StringCchPrintfW(volPath, MAX_PATH, L"\\\\.\\%s", pDrive);
-            if (len > 0) {
+
+            if (backslash_removed) {
                 pDrive[len - 1] = L'\\';
             }
 
@@ -135,7 +146,7 @@ void HandleJournalCheck(HWND hwnd) {
                 CloseHandle(hVol);
             }
         }
-        pDrive += wcslen(pDrive) + 1;
+        pDrive += len + 1;
     }
     FinalizeJournalScan(hwnd, itemIndex);
 }
