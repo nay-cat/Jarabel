@@ -3,6 +3,7 @@
 #include "res/resource.h" 
 #include "main_window_proc.h" 
 #include "window/search_window.h"
+#include <string.h>
 
 void SetupCustomHighlightColor() {
     g_originalHighlightColor = GetSysColor(COLOR_HIGHLIGHT);
@@ -32,7 +33,7 @@ void InitImageResource(HINSTANCE hInstance) {
                 if (hGlobal) {
                     LPVOID pGlobalData = GlobalLock(hGlobal);
                     if (pGlobalData) {
-                        memcpy(pGlobalData, pResData, dwResSize);
+                        memcpy_s(pGlobalData, dwResSize, pResData, dwResSize);
                         GlobalUnlock(hGlobal);
 
                         IStream* pStream = NULL;
@@ -59,9 +60,9 @@ void InitGdiResources() {
     g_lightBrush = GetSysColorBrush(COLOR_WINDOW);
 
     LOGFONTW lf = { 0 };
-    wcscpy_s(lf.lfFaceName, LF_FACESIZE, L"Calibri"); 
-    lf.lfHeight = -14; 
-    g_hFont = CreateFontIndirectW(&lf); 
+    wcscpy_s(lf.lfFaceName, LF_FACESIZE, L"Calibri");
+    lf.lfHeight = -14;
+    g_hFont = CreateFontIndirectW(&lf);
 
     lf.lfWeight = FW_BOLD;
     g_hFontBold = CreateFontIndirectW(&lf);
@@ -87,14 +88,14 @@ void RegisterWindowClasses(HINSTANCE hInstance) {
     WNDCLASSW wc = { 0 };
     wc.lpfnWndProc = WndProc;
     wc.hInstance = hInstance;
-    wc.lpszClassName = CLASS_NAME; 
+    wc.lpszClassName = CLASS_NAME;
     wc.hbrBackground = g_darkBrush;
     wc.hCursor = LoadCursor(NULL, IDC_ARROW);
-    RegisterClassW(&wc); 
+    RegisterClassW(&wc);
 
     const WCHAR SEARCH_CLASS_NAME[] = L"GlobalSearchWindowClass";
     WNDCLASSW wcSearch = { 0 };
-    wcSearch.lpfnWndProc = GlobalSearchWndProc; 
+    wcSearch.lpfnWndProc = GlobalSearchWndProc;
     wcSearch.hInstance = hInstance;
     wcSearch.lpszClassName = SEARCH_CLASS_NAME;
     wcSearch.hbrBackground = g_darkBrush;
