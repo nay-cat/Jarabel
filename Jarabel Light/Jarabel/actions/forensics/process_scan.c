@@ -55,7 +55,7 @@ static void FindJarPathsInMemory(BYTE* __restrict buffer, SIZE_T bytesRead, WCHA
                     if (path_len > 0 && path_len < MAX_PATH) {
                         WCHAR tempPath[MAX_PATH];
                         memcpy(tempPath, match_ptr, path_len * sizeof(WCHAR));
-                        tempPath[path_len] = L'\0'; 
+                        tempPath[path_len] = L'\0';
 
                         BOOL isDuplicate = FALSE;
                         for (int k = 0; k < *foundCount; k++) {
@@ -89,27 +89,22 @@ static void FindJarPathsInMemory(BYTE* __restrict buffer, SIZE_T bytesRead, WCHA
 static void ScanWmiProcessMemory(HANDLE hProcess, WCHAR*** __restrict p_foundPaths, int* __restrict foundCount, int* __restrict listCount, int* __restrict capacity, HWND hwnd) {
     MEMORY_BASIC_INFORMATION mbi;
     unsigned char* p = NULL;
-    const SIZE_T STACK_ALLOC_THRESHOLD = 4096;
 
     while (VirtualQueryEx(hProcess, p, &mbi, sizeof(mbi)) == sizeof(mbi)) {
         if (mbi.State == MEM_COMMIT && mbi.Type == MEM_PRIVATE && (mbi.Protect & (PAGE_READWRITE | PAGE_READONLY))) {
-            BYTE* buffer = (mbi.RegionSize <= STACK_ALLOC_THRESHOLD) ? (BYTE*)_malloca(mbi.RegionSize) : (BYTE*)malloc(mbi.RegionSize);
+            BYTE* buffer = (BYTE*)malloc(mbi.RegionSize);
             if (buffer) {
                 SIZE_T bytesRead;
                 if (ReadProcessMemory(hProcess, mbi.BaseAddress, buffer, mbi.RegionSize, &bytesRead)) {
                     FindJarPathsInMemory(buffer, bytesRead, p_foundPaths, foundCount, listCount, capacity, hwnd);
                 }
-                if (mbi.RegionSize > STACK_ALLOC_THRESHOLD) {
-                    free(buffer);
-                }
-                else {
-                    _freea(buffer);
-                }
+                free(buffer);
             }
         }
         p += mbi.RegionSize;
     }
 }
+
 
 static void FinalizeProcessScan(HWND hwnd, int count, WCHAR** __restrict foundPaths, int foundCount) {
     for (int k = 0; k < foundCount; k++) {
@@ -138,7 +133,7 @@ void HandleProcessScan(HWND hwnd) {
     DWORD cbNeeded, cProcesses;
     if (!EnumProcesses(aProcesses, sizeof(DWORD) * processArraySize, &cbNeeded)) {
         MessageBoxW(hwnd, L"Could not enumerate processes.", L"Error", MB_ICONERROR);
-        free(aProcesses); 
+        free(aProcesses);
         SetCursor(LoadCursor(NULL, IDC_ARROW));
         return;
     }
@@ -150,7 +145,7 @@ void HandleProcessScan(HWND hwnd) {
     WCHAR** foundPaths = malloc(capacity * sizeof(WCHAR*));
     if (!foundPaths) {
         MessageBoxW(hwnd, L"Memory allocation failed.", L"Error", MB_ICONERROR);
-        free(aProcesses); 
+        free(aProcesses);
         SetCursor(LoadCursor(NULL, IDC_ARROW));
         return;
     }

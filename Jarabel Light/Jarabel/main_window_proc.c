@@ -97,45 +97,88 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         case ID_MENU_COPY_ALL:
         {
             if (g_clickedItemIndex != -1 && g_hClickedListView != NULL) {
-                MasterList* pList = NULL;
-                if (g_hClickedListView == hMavenList) pList = &g_mavenMasterList;
-                else if (g_hClickedListView == hGradleList) pList = &g_gradleMasterList;
-                else if (g_hClickedListView == hForgeList) pList = &g_forgeMasterList;
-                else if (g_hClickedListView == hFabricList) pList = &g_fabricMasterList;
-                else if (g_hClickedListView == hMcpList) pList = &g_mcpMasterList;
-                else if (g_hClickedListView == hLibsList) pList = &g_libsMasterList;
-                else if (g_hClickedListView == hRunnableJarsList) pList = &g_runnableJarsMasterList;
-                else if (g_hClickedListView == hJarList) pList = &g_classesMasterList;
-                else if (g_hClickedListView == hRecentList) pList = &g_recentMasterList;
-                else if (g_hClickedListView == hPrefetchList) pList = &g_prefetchMasterList;
-                else if (g_hClickedListView == hProcessList) pList = &g_processesMasterList;
+                WCHAR buffer[2048];
+                size_t chars_to_copy = 0;
 
-                if (pList && g_clickedItemIndex < pList->count) {
-                    FileInfo* pInfo = (FileInfo*)pList->items[g_clickedItemIndex];
-                    if (pInfo) {
-                        WCHAR buffer[2048];
-                        switch (identifier) {
-                        case ID_MENU_COPY_NAME:
-                            wcscpy_s(buffer, MAX_PATH, PathFindFileNameW(pInfo->szFilePath));
+                if (g_hClickedListView == hJournalList) {
+                    if (g_clickedItemIndex < g_journalMasterList.count) {
+                        UsnJournalEntry* pEntry = (UsnJournalEntry*)g_journalMasterList.items[g_clickedItemIndex];
+                        if (pEntry) {
+                            switch (identifier) {
+                            case ID_MENU_COPY_NAME:
+                                chars_to_copy = wcslen(pEntry->fileName);
+                                if (chars_to_copy > 0 && chars_to_copy < _countof(buffer)) {
+                                    wcscpy_s(buffer, _countof(buffer), pEntry->fileName);
+                                }
+                                break;
+                            case ID_MENU_COPY_ALL:
+                            {
+                                int written = swprintf_s(buffer, _countof(buffer), L"Drive: %s\r\nFile Name: %s\r\nReason: %s\r\nTimestamp: %s",
+                                    pEntry->drive, pEntry->fileName, pEntry->reason, pEntry->timestamp);
+                                if (written > 0) {
+                                    chars_to_copy = written;
+                                }
+                            }
                             break;
-                        case ID_MENU_COPY_PATH:
-                            wcscpy_s(buffer, MAX_PATH, pInfo->szFilePath);
-                            break;
-                        case ID_MENU_COPY_METHODS:
-                            wcscpy_s(buffer, MAX_PATH, pInfo->szFilePath);
-                            break;
-                        case ID_MENU_COPY_ALL:
-                        {
-                            WCHAR szSize[64], szTime[64];
-                            FormatFileSize(pInfo->liFileSize, szSize, 64);
-                            FormatFileTime(pInfo->ftLastAccessTime, szTime, 64);
-                            swprintf_s(buffer, 2048, L"Name: %s\r\nPath: %s\r\nSize: %s\r\nLast Used: %s",
-                                PathFindFileNameW(pInfo->szFilePath), pInfo->szFilePath, szSize, szTime);
+                            }
                         }
-                        break;
-                        }
-                        CopyToClipboard(hwnd, buffer);
                     }
+                }
+                else {
+                    MasterList* pList = NULL;
+                    if (g_hClickedListView == hMavenList) pList = &g_mavenMasterList;
+                    else if (g_hClickedListView == hGradleList) pList = &g_gradleMasterList;
+                    else if (g_hClickedListView == hForgeList) pList = &g_forgeMasterList;
+                    else if (g_hClickedListView == hFabricList) pList = &g_fabricMasterList;
+                    else if (g_hClickedListView == hMcpList) pList = &g_mcpMasterList;
+                    else if (g_hClickedListView == hLibsList) pList = &g_libsMasterList;
+                    else if (g_hClickedListView == hRunnableJarsList) pList = &g_runnableJarsMasterList;
+                    else if (g_hClickedListView == hJarList) pList = &g_classesMasterList;
+                    else if (g_hClickedListView == hRecentList) pList = &g_recentMasterList;
+                    else if (g_hClickedListView == hPrefetchList) pList = &g_prefetchMasterList;
+                    else if (g_hClickedListView == hProcessList) pList = &g_processesMasterList;
+
+                    if (pList && g_clickedItemIndex < pList->count) {
+                        FileInfo* pInfo = (FileInfo*)pList->items[g_clickedItemIndex];
+                        if (pInfo) {
+                            switch (identifier) {
+                            case ID_MENU_COPY_NAME:
+                            {
+                                const WCHAR* filename = PathFindFileNameW(pInfo->szFilePath);
+                                chars_to_copy = wcslen(filename);
+                                if (chars_to_copy > 0 && chars_to_copy < _countof(buffer)) {
+                                    wcscpy_s(buffer, _countof(buffer), filename);
+                                }
+                            }
+                            break;
+                            case ID_MENU_COPY_PATH:
+                            case ID_MENU_COPY_METHODS:
+                            {
+                                chars_to_copy = wcslen(pInfo->szFilePath);
+                                if (chars_to_copy > 0 && chars_to_copy < _countof(buffer)) {
+                                    wcscpy_s(buffer, _countof(buffer), pInfo->szFilePath);
+                                }
+                            }
+                            break;
+                            case ID_MENU_COPY_ALL:
+                            {
+                                WCHAR szSize[64], szTime[64];
+                                FormatFileSize(pInfo->liFileSize, szSize, _countof(szSize));
+                                FormatFileTime(pInfo->ftLastAccessTime, szTime, _countof(szTime));
+                                int written = swprintf_s(buffer, _countof(buffer), L"Name: %s\r\nPath: %s\r\nSize: %s\r\nLast Used: %s",
+                                    PathFindFileNameW(pInfo->szFilePath), pInfo->szFilePath, szSize, szTime);
+                                if (written > 0) {
+                                    chars_to_copy = written;
+                                }
+                            }
+                            break;
+                            }
+                        }
+                    }
+                }
+
+                if (chars_to_copy > 0) {
+                    CopyToClipboard(hwnd, buffer, chars_to_copy);
                 }
             }
         }
@@ -220,12 +263,19 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                 POINT cursorPos;
                 GetCursorPos(&cursorPos);
                 HMENU hMenu = CreatePopupMenu();
-                AppendMenuW(hMenu, MF_STRING, ID_MENU_COPY_NAME, L"Copy Name");
-                AppendMenuW(hMenu, MF_STRING, ID_MENU_COPY_PATH, L"Copy Path");
-                AppendMenuW(hMenu, MF_STRING, ID_MENU_COPY_METHODS, L"Copy Class Name");
-                AppendMenuW(hMenu, MF_STRING, ID_MENU_COPY_ALL, L"Copy All Info");
-                if (TabCtrl_GetCurSel(hTab) != 8) {
-                    EnableMenuItem(hMenu, ID_MENU_COPY_METHODS, MF_BYCOMMAND | MF_GRAYED);
+
+                if (g_hClickedListView == hJournalList) {
+                    AppendMenuW(hMenu, MF_STRING, ID_MENU_COPY_NAME, L"Copy Name");
+                    AppendMenuW(hMenu, MF_STRING, ID_MENU_COPY_ALL, L"Copy All");
+                }
+                else {
+                    AppendMenuW(hMenu, MF_STRING, ID_MENU_COPY_NAME, L"Copy Name");
+                    AppendMenuW(hMenu, MF_STRING, ID_MENU_COPY_PATH, L"Copy Path");
+                    AppendMenuW(hMenu, MF_STRING, ID_MENU_COPY_METHODS, L"Copy Class Name");
+                    AppendMenuW(hMenu, MF_STRING, ID_MENU_COPY_ALL, L"Copy All Info");
+                    if (TabCtrl_GetCurSel(hTab) != 8) {
+                        EnableMenuItem(hMenu, ID_MENU_COPY_METHODS, MF_BYCOMMAND | MF_GRAYED);
+                    }
                 }
                 TrackPopupMenu(hMenu, TPM_LEFTALIGN | TPM_TOPALIGN | TPM_RIGHTBUTTON, cursorPos.x, cursorPos.y, 0, hwnd, NULL);
                 DestroyMenu(hMenu);

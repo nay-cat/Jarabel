@@ -1,20 +1,17 @@
 #include "../core/app.h"
 #include "action_handlers.h"
 
-// __restrict to indicate that str and suffix do not overlap in memory
-_inline static BOOL StringEndsWith(const char* __restrict str, const char* __restrict suffix) {
+_inline static BOOL StringEndsWith(const char* __restrict str, size_t str_len, const char* __restrict suffix, size_t suffix_len) {
     if (!str || !suffix) {
         return FALSE;
     }
-    size_t str_len = strlen(str);
-    size_t suffix_len = strlen(suffix);
     if (suffix_len > str_len) {
         return FALSE;
     }
-    return _strcmpi(str + (str_len - suffix_len), suffix) == 0;
+    return _memicmp(str + (str_len - suffix_len), suffix, suffix_len) == 0;
 }
 
-_inline static BOOL FindStringInJarEntry(FILE* __restrict file, const CDHeader* __restrict cdHeader, const char** __restrict searchStrings, int numStrings) {
+_inline static BOOL FindStringInJarEntry(FILE* __restrict file, const CDHeader* __restrict cdHeader, const char** __restrict searchStrings, const size_t* __restrict searchStringLens, int numStrings) {
     if (cdHeader->compSize == 0 || cdHeader->compSize > 10 * 1024 * 1024) {
         return FALSE;
     }
@@ -32,7 +29,6 @@ _inline static BOOL FindStringInJarEntry(FILE* __restrict file, const CDHeader* 
         return FALSE;
     }
 
-    // to keep them on the stack
     char* fileData = (cdHeader->compSize < 1024) ? (char*)_malloca(cdHeader->compSize) : (char*)malloc(cdHeader->compSize);
     if (!fileData) {
         return FALSE;
@@ -46,7 +42,7 @@ _inline static BOOL FindStringInJarEntry(FILE* __restrict file, const CDHeader* 
 
     BOOL found = FALSE;
     for (int i = 0; i < numStrings; i++) {
-        if (memmem(fileData, cdHeader->compSize, searchStrings[i], strlen(searchStrings[i]))) {
+        if (memmem(fileData, cdHeader->compSize, searchStrings[i], searchStringLens[i])) {
             found = TRUE;
             break;
         }
@@ -104,12 +100,23 @@ void AnalyzeAndCategorizeJar(FileInfo* __restrict pOriginalInfo, HWND hOwnerWnd,
     }
 
     _fseeki64(file, eocd.dirOffset, SEEK_SET);
-    fread(centralDirBuffer, 1, eocd.dirSize, file);
+    if (fread(centralDirBuffer, 1, eocd.dirSize, file) != eocd.dirSize) {
+        free(centralDirBuffer);
+        fclose(file);
+        free(pOriginalInfo);
+        return;
+    }
 
     BOOL isMaven = FALSE, isGradle = FALSE, hasForge = FALSE, hasFabric = FALSE;
     BOOL hasMcp = FALSE, isRunnable = FALSE, hasNativeHook = FALSE;
     int mcpClassCheckCount = 0, classCount = 0;
     char** classNames = (char**)malloc(eocd.totalEntries * sizeof(char*));
+    if (!classNames) {
+        free(centralDirBuffer);
+        fclose(file);
+        free(pOriginalInfo);
+        return;
+    }
 
     char* __restrict p = centralDirBuffer;
     for (UINT i = 0; i < eocd.totalEntries; ++i) {
@@ -120,9 +127,9 @@ void AnalyzeAndCategorizeJar(FileInfo* __restrict pOriginalInfo, HWND hOwnerWnd,
         DWORD entryDiskSize = sizeof(CDHeader) + header->nameLen + header->extraLen + header->cmtLen;
         if (p + entryDiskSize > centralDirBuffer + eocd.dirSize) break;
 
-        if (header->nameLen < MAX_PATH) {
-            char filename[MAX_PATH] = { 0 };
-            __movsb((unsigned char*)filename, (const unsigned char*)p + sizeof(CDHeader), header->nameLen);
+        if (header->nameLen > 0 && header->nameLen < MAX_PATH) {
+            char filename[MAX_PATH];
+            memcpy(filename, (const unsigned char*)p + sizeof(CDHeader), header->nameLen);
             filename[header->nameLen] = '\0';
 
             if (strstr(filename, "pom.xml")) isMaven = TRUE;
@@ -131,13 +138,21 @@ void AnalyzeAndCategorizeJar(FileInfo* __restrict pOriginalInfo, HWND hOwnerWnd,
             if (strcmp(filename, "mcmod.info") == 0 || strstr(filename, "net/minecraftforge/fml")) hasForge = TRUE;
             if (strcmp(filename, "META-INF/MANIFEST.MF") == 0) {
                 const char* searchStr[] = { "Main-Class:" };
-                if (FindStringInJarEntry(file, header, searchStr, 1)) isRunnable = TRUE;
+                const size_t searchStrLens[] = { sizeof("Main-Class:") - 1 };
+                if (FindStringInJarEntry(file, header, searchStr, searchStrLens, 1)) isRunnable = TRUE;
             }
-            if (StringEndsWith(filename, ".class")) {
-                if (classNames) classNames[classCount++] = _strdup(filename);
+
+            if (StringEndsWith(filename, header->nameLen, ".class", sizeof(".class") - 1)) {
+                if (classNames) {
+                    char* classNameDup = _strdup(filename);
+                    if (classNameDup) {
+                        classNames[classCount++] = classNameDup;
+                    }
+                }
                 if (!hasMcp && mcpClassCheckCount++ < 10) {
                     const char* mcpStrings[] = { "func_", "field_", "mc" };
-                    if (FindStringInJarEntry(file, header, mcpStrings, 3)) hasMcp = TRUE;
+                    const size_t mcpStringsLens[] = { sizeof("func_") - 1, sizeof("field_") - 1, sizeof("mc") - 1 };
+                    if (FindStringInJarEntry(file, header, mcpStrings, mcpStringsLens, 3)) hasMcp = TRUE;
                 }
                 if (!hasNativeHook) {
                     const char* jnativeHookStrings[] = { "org/jnativehook/mouse/" };

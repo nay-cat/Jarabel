@@ -26,9 +26,8 @@ void __cdecl FormatFileSize(ULARGE_INTEGER size, WCHAR* __restrict buffer, size_
 
 
 // clipboard.c
-void __cdecl CopyToClipboard(HWND hwnd, const WCHAR* __restrict text);
+void __cdecl CopyToClipboard(HWND hwnd, const WCHAR* __restrict text, size_t text_len_in_chars);
 
 // misc
-double __cdecl CalculateShannonEntropy(const char* __restrict str);
 double __cdecl CalculateAverageEntropy(char** __restrict stringList, int count);
 void* __cdecl memmem(const void* __restrict haystack, size_t haystack_len, const void* __restrict needle, size_t needle_len);

@@ -2,22 +2,22 @@
 
 static WCHAR g_cachedJarPath[MAX_PATH] = { 0 };
 static MasterList g_cachedClassNames;
-static BOOL g_cacheInitialized = FALSE; 
+static BOOL g_cacheInitialized = FALSE;
 
 static void ClearVirtualSearchCache() {
     if (g_cacheInitialized) {
         ClearMasterList(&g_cachedClassNames);
-        free(g_cachedClassNames.items); 
+        free(g_cachedClassNames.items);
         g_cachedClassNames.items = NULL;
-        wcscpy_s(g_cachedJarPath, MAX_PATH, L""); 
+        wcscpy_s(g_cachedJarPath, MAX_PATH, L"");
         g_cacheInitialized = FALSE;
     }
 }
 
 static BOOL GetClassEntryForIndex(int globalIndex, ClassEntry* pEntry) {
-    if (!pEntry || globalIndex < 0) return FALSE; 
+    if (!pEntry || globalIndex < 0) return FALSE;
 
-    EnterCriticalSection(&g_listLock); 
+    EnterCriticalSection(&g_listLock);
 
     int cumulativeMatches = 0;
     JarWithMatches* targetJarInfo = NULL;
@@ -28,14 +28,14 @@ static BOOL GetClassEntryForIndex(int globalIndex, ClassEntry* pEntry) {
         if (globalIndex < cumulativeMatches + currentJarInfo->matchCount) {
             targetJarInfo = currentJarInfo;
             indexInJar = globalIndex - cumulativeMatches;
-            break; 
+            break;
         }
         cumulativeMatches += currentJarInfo->matchCount;
     }
 
     LeaveCriticalSection(&g_listLock);
 
-    if (!targetJarInfo) return FALSE; 
+    if (!targetJarInfo) return FALSE;
 
     if (wcscmp(g_cachedJarPath, targetJarInfo->jarPath) != 0) {
         ClearVirtualSearchCache();
@@ -68,7 +68,7 @@ static BOOL GetClassEntryForIndex(int globalIndex, ClassEntry* pEntry) {
                             for (UINT entryIdx = 0; entryIdx < eocd.totalEntries; ++entryIdx) {
                                 if (p + sizeof(CDHeader) > centralDirBuffer + eocd.dirSize) break;
                                 CDHeader* header = (CDHeader*)p;
-                                if (header->sig != 0x02014b50) break; 
+                                if (header->sig != 0x02014b50) break;
                                 DWORD entryDiskSize = sizeof(CDHeader) + header->nameLen + header->extraLen + header->cmtLen;
                                 if (p + entryDiskSize > centralDirBuffer + eocd.dirSize) break;
                                 if (header->nameLen > 0 && header->nameLen < MAX_PATH) {
@@ -93,12 +93,16 @@ static BOOL GetClassEntryForIndex(int globalIndex, ClassEntry* pEntry) {
 
     if (indexInJar >= 0 && indexInJar < g_cachedClassNames.count) {
         char* classNameAnsi = (char*)g_cachedClassNames.items[indexInJar];
-        MultiByteToWideChar(CP_UTF8, 0, classNameAnsi, -1, pEntry->className, MAX_PATH); 
-        wcscpy_s(pEntry->parentJar, MAX_PATH, PathFindFileNameW(targetJarInfo->jarPath)); 
+        int requiredChars = MultiByteToWideChar(CP_UTF8, 0, classNameAnsi, -1, NULL, 0);
+        if (requiredChars == 0 || requiredChars > MAX_PATH) {
+            return FALSE;
+        }
+        MultiByteToWideChar(CP_UTF8, 0, classNameAnsi, -1, pEntry->className, requiredChars);
+        wcscpy_s(pEntry->parentJar, MAX_PATH, PathFindFileNameW(targetJarInfo->jarPath));
         return TRUE;
     }
 
-    return FALSE; 
+    return FALSE;
 }
 
 LRESULT CALLBACK GlobalSearchWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
@@ -108,7 +112,7 @@ LRESULT CALLBACK GlobalSearchWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
     switch (msg) {
     case WM_CREATE: {
         BOOL useDarkMode = TRUE;
-        DwmSetWindowAttribute(hwnd, 20, &useDarkMode, sizeof(useDarkMode)); 
+        DwmSetWindowAttribute(hwnd, 20, &useDarkMode, sizeof(useDarkMode));
 
         hSearch = CreateWindowW(L"EDIT", L"", WS_CHILD | WS_VISIBLE | WS_BORDER | ES_AUTOHSCROLL,
             10, 10, 675, 25, hwnd, (HMENU)ID_GLOBAL_SEARCH_EDIT, NULL, NULL);
@@ -138,13 +142,13 @@ LRESULT CALLBACK GlobalSearchWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
             EnterCriticalSection(&g_listLock);
             ClearMasterList(&g_globalSearchMasterList);
             LeaveCriticalSection(&g_listLock);
-            ListView_SetItemCount(hList, 0); 
+            ListView_SetItemCount(hList, 0);
 
             GlobalSearchThreadData* threadData = (GlobalSearchThreadData*)malloc(sizeof(GlobalSearchThreadData));
             if (threadData) {
                 threadData->hSearchWnd = hwnd;
-                GetWindowTextW(hSearch, threadData->searchTerm, 256); 
-                EnableWindow(hSearch, FALSE); 
+                GetWindowTextW(hSearch, threadData->searchTerm, 256);
+                EnableWindow(hSearch, FALSE);
                 EnableWindow(hSearchBtn, FALSE);
                 _beginthreadex(NULL, 0, &GlobalClassScanThread, threadData, 0, NULL);
             }
@@ -153,7 +157,7 @@ LRESULT CALLBACK GlobalSearchWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
             if (s_nClickedItem != -1) {
                 ClassEntry entry;
                 if (GetClassEntryForIndex(s_nClickedItem, &entry)) {
-                    CopyToClipboard(hwnd, entry.className);
+                    CopyToClipboard(hwnd, entry.className, wcslen(entry.className));
                 }
             }
         }
@@ -163,7 +167,7 @@ LRESULT CALLBACK GlobalSearchWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
     case WM_NOTIFY: {
         LPNMHDR lpnmh = (LPNMHDR)lParam;
         if (lpnmh->idFrom == ID_GLOBAL_SEARCH_LIST) {
-            if (lpnmh->code == LVN_GETDISPINFO) { 
+            if (lpnmh->code == LVN_GETDISPINFO) {
                 NMLVDISPINFOW* pdi = (NMLVDISPINFOW*)lParam;
                 static ClassEntry tempEntry;
 
@@ -176,14 +180,14 @@ LRESULT CALLBACK GlobalSearchWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
                     }
                 }
                 else {
-                    wcscpy_s(pdi->item.pszText, pdi->item.cchTextMax, L"Error loading..."); 
+                    wcscpy_s(pdi->item.pszText, pdi->item.cchTextMax, L"Error loading...");
                 }
                 return TRUE;
             }
             else if (lpnmh->code == NM_RCLICK) {
                 LPNMITEMACTIVATE lpnmitem = (LPNMITEMACTIVATE)lParam;
                 if (lpnmitem->iItem != -1) {
-                    s_nClickedItem = lpnmitem->iItem; 
+                    s_nClickedItem = lpnmitem->iItem;
 
                     POINT cursorPos;
                     GetCursorPos(&cursorPos);
@@ -218,10 +222,10 @@ LRESULT CALLBACK GlobalSearchWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
         break;
     }
 
-    case WM_CTLCOLORBTN: 
+    case WM_CTLCOLORBTN:
     case WM_CTLCOLOREDIT:
     case WM_CTLCOLORSTATIC: {
-        if (g_isDarkMode) return HandleCtlColor(msg, wParam); 
+        if (g_isDarkMode) return HandleCtlColor(msg, wParam);
         break;
     }
 

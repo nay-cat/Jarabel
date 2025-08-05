@@ -31,8 +31,8 @@ LRESULT CALLBACK DarkHeaderSubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPA
                 HDITEMW hdi = { .mask = HDI_TEXT | HDI_FORMAT, .pszText = szText, .cchTextMax = 256 };
                 Header_GetItem(hWnd, i, &hdi);
 
-                rcItem.left += 8; 
-                rcItem.right -= 8; 
+                rcItem.left += 8;
+                rcItem.right -= 8;
                 DrawTextW(hdc, szText, -1, &rcItem, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
 
                 MoveToEx(hdc, rcItem.right + 7, rcItem.top + 4, NULL);
@@ -60,7 +60,7 @@ void HandleCustomDraw(LPARAM lParam, LRESULT* pResult) {
     if (pnmcd->hdr.hwndFrom == hTab && g_isDarkMode) {
         switch (pnmcd->dwDrawStage) {
         case CDDS_PREPAINT:
-            FillRect(pnmcd->hdc, &pnmcd->rc, g_darkTabBrush); 
+            FillRect(pnmcd->hdc, &pnmcd->rc, g_darkTabBrush);
             *pResult = CDRF_NOTIFYITEMDRAW;
             return;
 
@@ -90,8 +90,8 @@ void HandleCustomDraw(LPARAM lParam, LRESULT* pResult) {
                 SelectObject(hdc, g_hFont);
             }
 
-            rcTab.left += 8; 
-            rcTab.right -= 8; 
+            rcTab.left += 8;
+            rcTab.right -= 8;
             DrawTextW(hdc, szText, -1, &rcTab, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 
             *pResult = CDRF_SKIPDEFAULT;
@@ -129,7 +129,7 @@ LRESULT HandleOwnerDraw(LPARAM lParam) {
         DrawFrameControl(hdc, &chkBoxRect, DFC_BUTTON, uState);
 
         RECT textRect = pdis->rcItem;
-        textRect.left += 20; 
+        textRect.left += 20;
 
         WCHAR szText[100];
         GetWindowTextW(pdis->hwndItem, szText, 100);
@@ -198,33 +198,39 @@ LRESULT HandleOwnerDraw(LPARAM lParam) {
                 SetTextColor(pdis->hDC, (pdis->itemState & ODS_SELECTED) ? GetSysColor(COLOR_HIGHLIGHTTEXT) : textCol);
             }
 
-            TextOutW(pdis->hDC, rc.left, rc.top, filename, (int)wcslen(filename));
+            size_t filename_len = wcsnlen(filename, MAX_PATH - (filename - pInfo->szFilePath));
+            TextOutW(pdis->hDC, rc.left, rc.top, filename, (int)filename_len);
             SIZE sz;
-            GetTextExtentPoint32W(pdis->hDC, filename, (int)wcslen(filename), &sz);
+            GetTextExtentPoint32W(pdis->hDC, filename, (int)filename_len, &sz);
             rc.left += sz.cx;
 
             SetTextColor(pdis->hDC, (pdis->itemState & ODS_SELECTED) ? GetSysColor(COLOR_HIGHLIGHTTEXT) : textCol);
             SelectObject(pdis->hDC, g_hFont);
 
             WCHAR szSize[64], szTime[64];
-            FormatFileSize(pInfo->liFileSize, szSize, 64);
-            FormatFileTime(pInfo->ftLastAccessTime, szTime, 64);
+            FormatFileSize(pInfo->liFileSize, szSize, _countof(szSize));
+            FormatFileTime(pInfo->ftLastAccessTime, szTime, _countof(szTime));
 
             SetTextColor(pdis->hDC, (pdis->itemState & ODS_SELECTED) ? GetSysColor(COLOR_HIGHLIGHTTEXT) : g_neutralColor);
             WCHAR szDetails[200];
-            swprintf_s(szDetails, 200, L" - Size: %s - Last Used: ", szSize);
-            TextOutW(pdis->hDC, rc.left, rc.top + 1, szDetails, (int)wcslen(szDetails));
-            GetTextExtentPoint32W(pdis->hDC, szDetails, (int)wcslen(szDetails), &sz);
+            swprintf_s(szDetails, _countof(szDetails), L" - Size: %s - Last Used: ", szSize);
+
+            size_t szDetails_len = wcsnlen(szDetails, _countof(szDetails));
+            TextOutW(pdis->hDC, rc.left, rc.top + 1, szDetails, (int)szDetails_len);
+            GetTextExtentPoint32W(pdis->hDC, szDetails, (int)szDetails_len, &sz);
             rc.left += sz.cx;
 
             SetTextColor(pdis->hDC, (pdis->itemState & ODS_SELECTED) ? GetSysColor(COLOR_HIGHLIGHTTEXT) : g_highlightColor);
-            TextOutW(pdis->hDC, rc.left, rc.top + 1, szTime, (int)wcslen(szTime));
+            size_t szTime_len = wcsnlen(szTime, _countof(szTime));
+            TextOutW(pdis->hDC, rc.left, rc.top + 1, szTime, (int)szTime_len);
 
             rc = pdis->rcItem;
             rc.top += 20; rc.left += 5;
             SetTextColor(pdis->hDC, (pdis->itemState & ODS_SELECTED) ? GetSysColor(COLOR_HIGHLIGHTTEXT) : g_neutralColor);
             PathCompactPathW(pdis->hDC, pInfo->szFilePath, rc.right - rc.left - 10);
-            TextOutW(pdis->hDC, rc.left, rc.top, pInfo->szFilePath, (int)wcslen(pInfo->szFilePath));
+
+            size_t szFilePath_len = wcsnlen(pInfo->szFilePath, MAX_PATH);
+            TextOutW(pdis->hDC, rc.left, rc.top, pInfo->szFilePath, (int)szFilePath_len);
         }
         return TRUE;
     }
@@ -235,7 +241,7 @@ LRESULT HandleMeasureItem(LPARAM lParam) {
     LPMEASUREITEMSTRUCT lpmis = (LPMEASUREITEMSTRUCT)lParam;
     if (lpmis->CtlType == ODT_LISTVIEW) {
         if (lpmis->CtlID == ID_LISTVIEW_JOURNAL) {
-            lpmis->itemHeight = 20; 
+            lpmis->itemHeight = 20;
         }
         else {
             lpmis->itemHeight = 40;
@@ -249,7 +255,7 @@ LRESULT HandleCtlColor(UINT msg, WPARAM wParam) {
     SetTextColor(hdc, g_darkTextColor);
 
     if (msg == WM_CTLCOLOREDIT) {
-        SetBkColor(hdc, RGB(50, 50, 50)); 
+        SetBkColor(hdc, RGB(50, 50, 50));
         return (LRESULT)g_darkBtnBrush;
     }
 
@@ -259,7 +265,7 @@ LRESULT HandleCtlColor(UINT msg, WPARAM wParam) {
     }
 
     if (msg == WM_CTLCOLORSTATIC) {
-        SetBkColor(hdc, g_darkBgColor); 
+        SetBkColor(hdc, g_darkBgColor);
         return (LRESULT)g_darkBrush;
     }
 

@@ -19,6 +19,9 @@
 #include <winternl.h>
 #include <intrin.h>
 #include <strsafe.h>
+#include <wchar.h> 
+#include <stdlib.h> 
+#include <pathcch.h> 
 
 #pragma comment(lib, "comctl32.lib")
 #pragma comment(lib, "Shlwapi.lib")
@@ -26,6 +29,7 @@
 #pragma comment(lib, "Ole32.lib")
 #pragma comment(lib, "OleAut32.lib")
 #pragma comment(lib, "dwmapi.lib")
+#pragma comment(lib, "Pathcch.lib") 
 
 #include "globals.h"
 
