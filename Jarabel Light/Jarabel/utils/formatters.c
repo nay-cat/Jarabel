@@ -5,7 +5,6 @@ int Utf8ToWide(const LPCCH utf8Str, const int bytes, const LPWSTR wideStr, const
 {
     // if doesnt work, just replace this voodoo thingy with return MultiByteToWideChar(CP_UTF8, 0, utf8Str, bytes, wideStr, wideChars);
     if (utf8Str == NULL) return NULL;
-    if (bytes < 0) bytes = strlen(utf8Str);
     if (bytes == 0) {
         wchar_t* empty_str = (wchar_t*)malloc(sizeof(wchar_t));
         if (empty_str) empty_str[0] = L'\0';
@@ -26,7 +25,7 @@ int Utf8ToWide(const LPCCH utf8Str, const int bytes, const LPWSTR wideStr, const
             required_wchars++; 
         }
         else { 
-            return NULL;
+            p++;
         }
         required_wchars++;
     }
@@ -38,26 +37,32 @@ int Utf8ToWide(const LPCCH utf8Str, const int bytes, const LPWSTR wideStr, const
     wchar_t* out = wide_buffer;
     while (p < end) {
         unsigned long codepoint = 0;
-        if (*p < 0x80) { 
+        unsigned char c1 = *p;
+
+        if (c1 < 0x80) { 
             codepoint = *p++;
         }
-        else if ((*p & 0xE0) == 0xC0) { 
+        else if ((c1 & 0xE0) == 0xC0 && (p + 1 < end)) { 
             codepoint = (*p & 0x1F) << 6;
             codepoint |= (*(p + 1) & 0x3F);
             p += 2;
         }
-        else if ((*p & 0xF0) == 0xE0) { 
+        else if ((c1 & 0xF0) == 0xE0 && (p + 2 < end)) { 
             codepoint = (*p & 0x0F) << 12;
             codepoint |= (*(p + 1) & 0x3F) << 6;
             codepoint |= (*(p + 2) & 0x3F);
             p += 3;
         }
-        else if ((*p & 0xF8) == 0xF0) { 
+        else if ((c1 & 0xF8) == 0xF0 && (p + 3 < end)) { 
             codepoint = (*p & 0x07) << 18;
             codepoint |= (*(p + 1) & 0x3F) << 12;
             codepoint |= (*(p + 2) & 0x3F) << 6;
             codepoint |= (*(p + 3) & 0x3F);
             p += 4;
+        }
+        else { 
+            codepoint = L'?'; 
+            p++;
         }
 
         if (codepoint < 0x10000) {
@@ -70,7 +75,7 @@ int Utf8ToWide(const LPCCH utf8Str, const int bytes, const LPWSTR wideStr, const
         }
     }
 
-    *out = L'\0';
+    *out = L'\0'; 
     return wide_buffer;
 }
 
