@@ -2,7 +2,7 @@
 
 static void InitializePrefetchScan() {
     EnterCriticalSection(&g_listLock);
-    ClearMasterList(&g_prefetchMasterList);
+    DestroyMasterList(&g_prefetchMasterList);
     LeaveCriticalSection(&g_listLock);
     ListView_DeleteAllItems(hPrefetchList);
     SetCursor(LoadCursor(NULL, IDC_WAIT));
@@ -35,7 +35,6 @@ static void ScanPrefetchFolder(const WCHAR* prefetchPath, int* count, const WCHA
                     pInfo->liFileSize.HighPart = findData.nFileSizeHigh;
                     pInfo->ftLastAccessTime = findData.ftLastWriteTime;
                     pInfo->isObfuscated = FALSE;
-                    pInfo->entropy = 0;
                     AddPrefetchFileToList(pInfo, count);
                 }
             }
@@ -52,7 +51,7 @@ static void FinalizePrefetchScan(HWND hwnd, int count) {
 }
 
 void HandlePrefetchCheck(HWND hwnd) {
-    InitializePrefetchScan(hwnd, hPrefetchList);
+    InitializePrefetchScan();
     WCHAR windowsDir[MAX_PATH];
     if (GetWindowsDirectoryW(windowsDir, MAX_PATH) == 0) {
         MessageBoxW(hwnd, L"Could not determine Windows directory.", L"Error", MB_ICONERROR);

@@ -2,7 +2,7 @@
 
 static void InitializeJournalScan() {
     EnterCriticalSection(&g_listLock);
-    ClearMasterList(&g_journalMasterList);
+    DestroyMasterList(&g_journalMasterList);
     LeaveCriticalSection(&g_listLock);
     ListView_DeleteAllItems(hJournalList);
     SetCursor(LoadCursor(NULL, IDC_WAIT));
@@ -19,7 +19,7 @@ static void AddJournalEntryToView(UsnJournalEntry* pEntry, int* itemIndex) {
     ListView_SetItemText(hJournalList, *itemIndex - 1, 3, pEntry->timestamp);
 }
 
-static BOOL GetUsnFileName(const USN_RECORD_V2* pRecord, WCHAR* buffer, size_t bufferSize) {
+static bool GetUsnFileName(const USN_RECORD_V2* pRecord, WCHAR* buffer, size_t bufferSize) {
     if (!pRecord || !buffer || bufferSize == 0) {
         return FALSE;
     }
@@ -29,7 +29,7 @@ static BOOL GetUsnFileName(const USN_RECORD_V2* pRecord, WCHAR* buffer, size_t b
         return FALSE;
     }
 
-    size_t fileNameChars = pRecord->FileNameLength / sizeof(WCHAR);
+    const size_t fileNameChars = pRecord->FileNameLength / sizeof(WCHAR);
 
     if (fileNameChars >= bufferSize) {
         return FALSE;
@@ -127,7 +127,7 @@ void HandleJournalCheck(HWND hwnd) {
         WCHAR fsNameBuffer[MAX_PATH];
         if (GetVolumeInformationW(pDrive, NULL, 0, NULL, NULL, NULL, fsNameBuffer, MAX_PATH) && wcscmp(fsNameBuffer, L"NTFS") == 0) {
             WCHAR volPath[MAX_PATH];
-            BOOL backslash_removed = FALSE;
+            bool backslash_removed = FALSE;
 
             if (pDrive[len - 1] == L'\\') {
                 pDrive[len - 1] = L'\0';

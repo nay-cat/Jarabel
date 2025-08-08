@@ -4,9 +4,12 @@
 #define _UNICODE
 
 #include <windows.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 #include <commctrl.h>
 #include <windowsx.h>
-#include <stdio.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <winioctl.h>
 #include <shlwapi.h>
@@ -15,13 +18,12 @@
 #include <olectl.h>
 #include <dwmapi.h>
 #include <math.h>
-#include <string.h>
 #include <winternl.h>
 #include <intrin.h>
 #include <strsafe.h>
 #include <wchar.h> 
-#include <stdlib.h> 
 #include <pathcch.h> 
+#include <errno.h>
 
 #pragma comment(lib, "comctl32.lib")
 #pragma comment(lib, "Shlwapi.lib")
@@ -39,7 +41,7 @@
 #include "../ui/ui_handlers.h"
 #include "../ui/ui_drawing.h"
 #include "../actions/action_handlers.h"
-#include "../threads/threads.h" 
+#include "../scan/threads.h" 
 #include "../window/search_window.h"
 #include "../utils/utils.h"
 

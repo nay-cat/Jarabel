@@ -1,12 +1,26 @@
-#include "app_lifecycle.h"
 #include "core/app.h"
+
+#include "app_lifecycle.h"
 #include "app_init.h"
 
 #pragma comment(linker,"/manifestdependency:\"type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 
+#if defined(_DEBUG)    /* MSVC Debug */       \
+     || defined(DEBUG)     /* user or build-system */ \
+     || !defined(NDEBUG)   /* assert-enabled (standard) */
+    #define __JARABEL_DEBUG__
+    #define _CRTDBG_MAP_ALLOC
+    #include <stdlib.h>
+    #include <crtdbg.h>
+#endif
+
 int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPSTR lpCmdLine, _In_ int nCmdShow) {
     (void)hPrevInstance; (void)lpCmdLine;
 
+    #ifdef __JARABEL_DEBUG__
+        #pragma message("IMPORTANT!: You are building in DEBUG mode. Switch to the Release mode unless you know what you're doing.")
+        _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+    #endif
     InitializeCriticalSection(&g_listLock);
     if (FAILED(OleInitialize(NULL))) return 1;
 
@@ -29,16 +43,16 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
         return 2;
     }
 
-    BOOL useDarkMode = TRUE;
+    bool useDarkMode = TRUE;
     DwmSetWindowAttribute(hwnd, 20, &useDarkMode, sizeof(useDarkMode));
 
     ShowWindow(hwnd, nCmdShow);
     UpdateWindow(hwnd);
 
     MSG msg = { 0 };
-    while (GetMessage(&msg, NULL, 0, 0) > 0) {
+    while (GetMessageW(&msg, NULL, 0, 0) > 0) {
         TranslateMessage(&msg);
-        DispatchMessage(&msg);
+        DispatchMessageW(&msg);
     }
 
     if (g_pNijikaPicture) g_pNijikaPicture->lpVtbl->Release(g_pNijikaPicture);
@@ -49,6 +63,8 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 
     DeleteCriticalSection(&g_listLock);
     RestoreOriginalHighlightColor();
+
+    // _CrtDumpMemoryLeaks();
 
     return (int)msg.wParam;
 }

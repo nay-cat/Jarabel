@@ -3,7 +3,6 @@
 #include "res/resource.h" 
 #include "main_window_proc.h" 
 #include "window/search_window.h"
-#include <string.h>
 
 void SetupCustomHighlightColor() {
     g_originalHighlightColor = GetSysColor(COLOR_HIGHLIGHT);

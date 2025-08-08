@@ -1,7 +1,5 @@
-#pragma once
-
-#include <windows.h>
 #include "../core/globals.h"
+#include "../utils/utils.h"
 
 void HandleJarInspect(HWND hwnd);
 void HandleJournalCheck(HWND hwnd);

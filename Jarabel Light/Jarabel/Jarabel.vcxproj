@@ -44,6 +44,7 @@
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>NotSet</CharacterSet>
+    <EnableASAN>true</EnableASAN>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
@@ -104,6 +105,8 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard_C>stdclatest</LanguageStandard_C>
       <CallingConvention>FastCall</CallingConvention>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -124,18 +127,19 @@
       <OmitFramePointers>true</OmitFramePointers>
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
       <StringPooling>true</StringPooling>
-      <ExceptionHandling>false</ExceptionHandling>
+      <ExceptionHandling>Sync</ExceptionHandling>
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <ControlFlowGuard>false</ControlFlowGuard>
       <FloatingPointModel>Fast</FloatingPointModel>
       <IntelJCCErratum>true</IntelJCCErratum>
-      <EnableModules>false</EnableModules>
+      <EnableModules>true</EnableModules>
       <CallingConvention>FastCall</CallingConvention>
-      <CompileAs>CompileAsC</CompileAs>
+      <CompileAs>Default</CompileAs>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
+      <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
       <FloatingPointExceptions>false</FloatingPointExceptions>
       <CreateHotpatchableImage>false</CreateHotpatchableImage>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -154,15 +158,16 @@
     <ClCompile Include="core\globals.c" />
     <ClCompile Include="Jarabel.c" />
     <ClCompile Include="main_window_proc.c" />
-    <ClCompile Include="threads\ntapi_wrappers.c" />
-    <ClCompile Include="threads\queue.c" />
-    <ClCompile Include="threads\threads.c" />
+    <ClCompile Include="scan\fast_scan.c" />
+    <ClCompile Include="scan\stable_scan.cpp" />
+    <ClCompile Include="scan\threads.c" />
     <ClCompile Include="ui\ui_creation.c" />
     <ClCompile Include="ui\ui_drawing.c" />
     <ClCompile Include="ui\ui_handlers.c" />
     <ClCompile Include="utils\clipboard.c" />
     <ClCompile Include="utils\formatters.c" />
     <ClCompile Include="utils\master_list.c" />
+    <ClCompile Include="utils\parser.c" />
     <ClCompile Include="utils\sorting.c" />
     <ClCompile Include="window\search_window.c" />
   </ItemGroup>
@@ -176,9 +181,10 @@
     <ClInclude Include="main_window_proc.h" />
     <ClInclude Include="res\ids.h" />
     <ClInclude Include="res\resource.h" />
-    <ClInclude Include="threads\ntapi_wrappers.h" />
-    <ClInclude Include="threads\queue.h" />
-    <ClInclude Include="threads\threads.h" />
+    <ClInclude Include="scan\fast_scan.h" />
+    <ClInclude Include="scan\scanner_callbacks.h" />
+    <ClInclude Include="scan\stable_scan.hpp" />
+    <ClInclude Include="scan\threads.h" />
     <ClInclude Include="ui\ui_creation.h" />
     <ClInclude Include="ui\ui_drawing.h" />
     <ClInclude Include="ui\ui_handlers.h" />
