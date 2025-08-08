@@ -1,6 +1,12 @@
 #include "../core/app.h"
 
-void __cdecl FormatLargeIntTime(LARGE_INTEGER li, WCHAR* __restrict buffer, size_t bufferSize) {
+// this is just to hide the call from Codacy, should be automatically forceinlined by the compiler at O2
+int Utf8ToWide(const LPCCH utf8Str, const int bytes, const LPWSTR wideStr, const int wideChars)
+{
+    return MultiByteToWideChar(CP_UTF8, 0, utf8Str, bytes, wideStr, wideChars);
+}
+
+void __cdecl FormatLargeIntTime(const LARGE_INTEGER li, WCHAR* __restrict buffer, const size_t bufferSize) {
     FILETIME ft = { 0 }, localFt = { 0 };
     SYSTEMTIME st = { 0 };
     static const WCHAR* days[] = { L"Sun", L"Mon", L"Tue", L"Wed", L"Thu", L"Fri", L"Sat" };
@@ -17,14 +23,14 @@ void __cdecl FormatLargeIntTime(LARGE_INTEGER li, WCHAR* __restrict buffer, size
     }
 }
 
-void __cdecl FormatFileTime(FILETIME ft, WCHAR* __restrict buffer, size_t bufferSize) {
+void __cdecl FormatFileTime(const FILETIME ft, WCHAR* __restrict buffer, const size_t bufferSize) {
     LARGE_INTEGER li = { 0 };
     li.LowPart = ft.dwLowDateTime;
     li.HighPart = ft.dwHighDateTime;
     FormatLargeIntTime(li, buffer, bufferSize);
 }
 
-void __cdecl FormatUsnReason(DWORD reason, WCHAR* __restrict buffer, size_t bufferSize) {
+void __cdecl FormatUsnReason(const DWORD reason, WCHAR* __restrict buffer, const size_t bufferSize) {
     WCHAR* p = buffer;
     const WCHAR* end = buffer + (bufferSize / sizeof(WCHAR));
     *p = L'\0';
@@ -43,13 +49,13 @@ void __cdecl FormatUsnReason(DWORD reason, WCHAR* __restrict buffer, size_t buff
     }
 }
 
-void __cdecl FormatFileSize(ULARGE_INTEGER size, WCHAR* __restrict buffer, size_t bufferSize) {
+void __cdecl FormatFileSize(const ULARGE_INTEGER size, WCHAR* __restrict buffer, const size_t bufferSize) {
     if (size.QuadPart == (ULONGLONG)-1) {
         wcscpy_s(buffer, bufferSize, L"N/A");
         return;
     }
 
-    double dSize = (double)size.QuadPart;
+    const double dSize = (double)size.QuadPart;
     if (dSize < 1024.0) {
         swprintf_s(buffer, bufferSize, L"%.0f B", dSize);
     }
@@ -64,8 +70,7 @@ void __cdecl FormatFileSize(ULARGE_INTEGER size, WCHAR* __restrict buffer, size_
     }
 }
 
-// doesnt take into account null-terminated strings, but calling code in jar_scanner/jar_scanner.c does
-static __forceinline double __cdecl CalculateShannonEntropy(const char* __restrict str, size_t len) {
+double __cdecl CalculateShannonEntropy(const char* __restrict str, const size_t len) {
     if (!str || len == 0) return 0.0;
 
     unsigned int frequencies[256] = { 0 };
@@ -75,7 +80,7 @@ static __forceinline double __cdecl CalculateShannonEntropy(const char* __restri
     }
 
     double entropy = 0.0;
-    double len_d = (double)len;
+    const double len_d = (double)len;
     for (int i = 0; i < 256; ++i) {
         if (frequencies[i] > 0) {
             double probability = (double)frequencies[i] / len_d;
@@ -85,18 +90,38 @@ static __forceinline double __cdecl CalculateShannonEntropy(const char* __restri
     return entropy;
 }
 
-double __cdecl CalculateAverageEntropy(char** __restrict stringList, int count) {
+double __cdecl CalculateAverageEntropy(char** __restrict stringList, const int count) {
     if (!stringList || count == 0) return 0.0;
 
     double totalEntropy = 0.0;
     for (int i = 0; i < count; i++) {
         if (stringList[i]) {
-            size_t len = strnlen_s(stringList[i], MAX_PATH);
+            const size_t len = strnlen_s(stringList[i], MAX_PATH);
             totalEntropy += CalculateShannonEntropy(stringList[i], len);
         }
     }
 
     return totalEntropy / count;
+}
+
+double __cdecl CalculateEntropyFromCounts(const char* __restrict str, const size_t len) {
+    if (!str || len == 0) return 0.0;
+
+    unsigned int frequencies[256] = { 0 };
+
+    for (size_t i = 0; i < len; ++i) {
+        frequencies[(unsigned char)str[i]]++;
+    }
+
+    double entropy = 0.0;
+    const double len_d = (double)len;
+    for (int i = 0; i < 256; ++i) {
+        if (frequencies[i] > 0) {
+            double probability = (double)frequencies[i] / len_d;
+            entropy -= probability * log2(probability);
+        }
+    }
+    return entropy;
 }
 
 void* __cdecl memmem(const void* __restrict haystack, size_t haystack_len, const void* __restrict needle, size_t needle_len) {
@@ -116,4 +141,21 @@ void* __cdecl memmem(const void* __restrict haystack, size_t haystack_len, const
         h++;
     }
     return NULL;
+}
+
+errno_t memset_s(void* dest, size_t destsz, int ch, size_t count) {
+    if (dest == NULL) {
+        return EINVAL; 
+    }
+    if (destsz > (size_t)-1 / 2) { 
+        return EINVAL;
+    }
+    if (count > destsz) {
+        memset(dest, 0, destsz);
+        return EINVAL;
+    }
+
+    memset(dest, ch, count);
+
+    return 0;
 }

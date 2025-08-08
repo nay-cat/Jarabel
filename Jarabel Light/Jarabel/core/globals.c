@@ -4,15 +4,15 @@ IPicture* g_pNijikaPicture = NULL;
 CRITICAL_SECTION g_listLock;
 
 HWND hTab, hJarList, hJournalList, hRecentList, hPrefetchList, hProcessList;
-HWND hJarButton, hJournalButton, hRecentButton, hPrefetchButton, hJarScanButton, hProcessScanButton, hGlobalClassSearchButton;
+HWND hJarButton, hJournalButton, hRecentButton, hPrefetchButton, hJarScanButton, hProcessScanButton, hGlobalClassSearchButton, hFastScanButton;
 HWND hMavenList, hGradleList, hForgeList, hFabricList, hMcpList, hLibsList, hRunnableJarsList;
 HWND hSearchMaven, hSearchGradle, hSearchForge, hSearchFabric, hSearchMcp, hSearchLibs, hSearchRunnableJars;
 HWND hSearchClasses, hSearchJournal, hSearchRecent, hSearchPrefetch, hSearchProcesses;
 HWND hSortComboBox, hFilterComboBox;
-HWND hNijikaImage, hEntropyLabel, hTitleLabel, hDescLabel, hMultiThreadCheckBox;
+HWND hNijikaImage, hEntropyLabel, hTitleLabel, hDescLabel;
 
-BOOL g_isDarkMode = TRUE;
-BOOL g_useMultiThreading = FALSE; 
+bool g_isDarkMode = TRUE;
+bool g_isFastScanEnabled = FALSE;
 
 HBRUSH g_darkBrush, g_lightBrush, g_darkBtnBrush, g_darkTabBrush, g_tabHighlightBrush;
 

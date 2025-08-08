@@ -2,7 +2,7 @@
 
 static void InitializeProcessScan() {
     EnterCriticalSection(&g_listLock);
-    ClearMasterList(&g_processesMasterList);
+    DestroyMasterList(&g_processesMasterList);
     LeaveCriticalSection(&g_listLock);
     ListView_DeleteAllItems(hProcessList);
     SetCursor(LoadCursor(NULL, IDC_WAIT));
@@ -12,17 +12,8 @@ static void AddProcessInfoToList(const WCHAR* __restrict tempPath, int* __restri
     FileInfo* pInfo = (FileInfo*)malloc(sizeof(FileInfo));
     if (pInfo) {
         wcscpy_s(pInfo->szFilePath, MAX_PATH, tempPath);
-        WIN32_FILE_ATTRIBUTE_DATA fad = { 0 };
-        if (GetFileAttributesExW(tempPath, GetFileExInfoStandard, &fad)) {
-            pInfo->liFileSize.LowPart = fad.nFileSizeLow;
-            pInfo->liFileSize.HighPart = fad.nFileSizeHigh;
-            pInfo->ftLastAccessTime = fad.ftLastAccessTime;
-        }
-        else {
-            pInfo->liFileSize.QuadPart = (ULONGLONG)-1;
-        }
+        PopulateFileInfo(pInfo);
         pInfo->isObfuscated = FALSE;
-        pInfo->entropy = 0;
 
         EnterCriticalSection(&g_listLock);
         AddToMasterList(&g_processesMasterList, pInfo);
@@ -41,15 +32,15 @@ static void FindJarPathsInMemory(BYTE* __restrict buffer, SIZE_T bytesRead, WCHA
     const size_t patternLen = 4; // wcslen(L"-jar")
     WCHAR** foundPaths = *p_foundPaths;
 
-    size_t searchLimit = (bytesRead > (patternLen * sizeof(WCHAR))) ? (bytesRead - (patternLen * sizeof(WCHAR))) : 0;
+    const size_t searchLimit = (bytesRead > (patternLen * sizeof(WCHAR))) ? (bytesRead - (patternLen * sizeof(WCHAR))) : 0;
 
     for (size_t j = 0; j <= searchLimit; j += sizeof(WCHAR)) {
         if (_wcsnicmp((WCHAR*)(buffer + j), targetPattern, patternLen) == 0) {
-            WCHAR* match_ptr = (WCHAR*)(buffer + j + (patternLen * sizeof(WCHAR)));
+            CONST WCHAR* match_ptr = (WCHAR*)(buffer + j + (patternLen * sizeof(WCHAR)));
             while (*match_ptr == L' ' || *match_ptr == L'\t') { match_ptr++; }
             if (*match_ptr == L'\"') {
                 match_ptr++;
-                WCHAR* end_quote = wcschr(match_ptr, L'\"');
+                CONST WCHAR* end_quote = wcschr(match_ptr, L'\"');
                 if (end_quote) {
                     size_t path_len = end_quote - match_ptr;
                     if (path_len > 0 && path_len < MAX_PATH) {
@@ -57,7 +48,7 @@ static void FindJarPathsInMemory(BYTE* __restrict buffer, SIZE_T bytesRead, WCHA
                         memcpy(tempPath, match_ptr, path_len * sizeof(WCHAR));
                         tempPath[path_len] = L'\0';
 
-                        BOOL isDuplicate = FALSE;
+                        bool isDuplicate = FALSE;
                         for (int k = 0; k < *foundCount; k++) {
                             if (wcscmp(foundPaths[k], tempPath) == 0) {
                                 isDuplicate = TRUE;

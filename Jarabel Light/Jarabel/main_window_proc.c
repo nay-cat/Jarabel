@@ -1,9 +1,11 @@
 #include "main_window_proc.h"
 #include "core/app.h"
+#include "threads.h"
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     switch (msg) {
     case WM_CREATE:
+        g_isFastScanEnabled = FALSE;
         CreateUI(hwnd);
         break;
 
@@ -50,26 +52,34 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
         switch (identifier) {
         case ID_BUTTON_JAR_SCAN:
-            EnableWindow(hJarScanButton, FALSE);
-            EnableWindow(hMultiThreadCheckBox, FALSE);
-            SetWindowTextW(hJarScanButton, L"Scanning...");
-            SetCursor(LoadCursor(NULL, IDC_WAIT));
-
-            if (g_useMultiThreading) {
-                _beginthreadex(NULL, 0, &JarScanThread_Multi, hwnd, 0, NULL);
+        {
+            uintptr_t hThread = 0;
+            if (g_isFastScanEnabled) {
+                hThread = _beginthreadex(NULL, 0, &UnstableJarScanThread, hwnd, 0, NULL);
             }
             else {
-                _beginthreadex(NULL, 0, &JarScanThread_Single, hwnd, 0, NULL);
+                hThread = _beginthreadex(NULL, 0, &StableJarScanThread, hwnd, 0, NULL);
             }
-            break;
 
-        case ID_CHECKBOX_MULTITHREAD:
-            if (notificationCode == BN_CLICKED) {
-                g_useMultiThreading = !g_useMultiThreading;
-                InvalidateRect(hMultiThreadCheckBox, NULL, TRUE);
+            if (hThread) {
+                CloseHandle((HANDLE)(hThread));
             }
-            break;
+            else {
+                EnableWindow(hJarScanButton, TRUE);
+                SetWindowTextW(hJarScanButton, L"Scan JARs");
+                MessageBoxW(hwnd, L"Failed to start scan thread.", L"Error", MB_ICONERROR);
+                break;
+            }
 
+            EnableWindow(hJarScanButton, FALSE);
+            SetWindowTextW(hJarScanButton, L"Scanning...");
+            SetCursor(LoadCursor(NULL, IDC_WAIT));
+            break;
+        }
+        case ID_BUTTON_FAST_SCAN:
+            g_isFastScanEnabled = !g_isFastScanEnabled;
+            InvalidateRect(hFastScanButton, NULL, TRUE);
+            break;
         case ID_BUTTON_GLOBAL_CLASS_SEARCH:
         {
             int totalJars = g_allJarsMasterList.count;
@@ -193,8 +203,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         if (pInfo) {
             AddToMasterList(&g_allJarsMasterList, pInfo);
 
-            int filterType = ComboBox_GetCurSel(hFilterComboBox);
-            BOOL shouldDisplay = (filterType == 0) || (filterType == 1 && pInfo->isObfuscated);
+            const int filterType = ComboBox_GetCurSel(hFilterComboBox);
+            const bool shouldDisplay = (filterType == 0) || (filterType == 1 && pInfo->isObfuscated);
 
             LVITEMW lvi = { 0 };
             lvi.mask = LVIF_PARAM;
@@ -235,7 +245,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     case WM_APP_JAR_SCAN_COMPLETE: {
         SetWindowTextW(hJarScanButton, L"Scan All Drives");
         EnableWindow(hJarScanButton, TRUE);
-        EnableWindow(hMultiThreadCheckBox, TRUE);
         SetCursor(LoadCursor(NULL, IDC_ARROW));
 
         int total = g_allJarsMasterList.count;
@@ -253,7 +262,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     case WM_NOTIFY: {
         LPNMHDR lpnmh = (LPNMHDR)lParam;
         if (lpnmh->code == TCN_SELCHANGE) {
-            HandleTabChange(hwnd);
+            HandleTabChange();
         }
         else if (lpnmh->code == NM_RCLICK) {
             LPNMITEMACTIVATE lpnmitem = (LPNMITEMACTIVATE)lParam;

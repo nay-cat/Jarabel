@@ -48,9 +48,8 @@ void CreateUI(HWND hwnd) {
 
     hJarScanButton = CreateWindowW(L"BUTTON", L"Scan All Drives", WS_CHILD | WS_TABSTOP | BS_PUSHBUTTON, 0, 0, 10, 10, hwnd, (HMENU)ID_BUTTON_JAR_SCAN, NULL, NULL);
     hGlobalClassSearchButton = CreateWindowW(L"BUTTON", L"Search Class Methods", WS_CHILD | WS_TABSTOP | BS_PUSHBUTTON, 0, 0, 10, 10, hwnd, (HMENU)ID_BUTTON_GLOBAL_CLASS_SEARCH, NULL, NULL);
+    hFastScanButton = CreateWindowW(L"BUTTON", L"Enable fast (unstable) scan", WS_CHILD | WS_TABSTOP | BS_OWNERDRAW, 0, 0, 10, 10, hwnd, (HMENU)ID_BUTTON_FAST_SCAN, NULL, NULL);
     hNijikaImage = CreateWindowW(L"STATIC", L"", WS_CHILD | SS_OWNERDRAW, 0, 0, 10, 10, hwnd, (HMENU)ID_NIJIKA_IMAGE, NULL, NULL);
-
-    hMultiThreadCheckBox = CreateWindowW(L"BUTTON", L"Use Multi-threading (Faster, High Memory)", WS_CHILD | WS_TABSTOP | BS_OWNERDRAW, 0, 0, 10, 10, hwnd, (HMENU)ID_CHECKBOX_MULTITHREAD, NULL, NULL);
 
     hSearchMaven = CreateWindowW(L"EDIT", L"", WS_CHILD | WS_BORDER | ES_AUTOHSCROLL, 390, 35, 480, 20, hwnd, (HMENU)ID_SEARCH_MAVEN, NULL, NULL);
     hMavenList = CreateWindowExW(0, WC_LISTVIEWW, L"", listViewStyle, 10, 60, 860, 600, hwnd, (HMENU)ID_LISTVIEW_MAVEN, NULL, NULL);
@@ -138,8 +137,8 @@ void CreateUI(HWND hwnd) {
     ShowWindow(hDescLabel, SW_SHOW);
     ShowWindow(hJarScanButton, SW_SHOW);
     ShowWindow(hGlobalClassSearchButton, SW_SHOW);
+    ShowWindow(hFastScanButton, SW_SHOW);
     ShowWindow(hNijikaImage, SW_SHOW);
-    ShowWindow(hMultiThreadCheckBox, SW_SHOW);
 
     ShowWindow(hSortComboBox, SW_HIDE);
     ShowWindow(hFilterComboBox, SW_HIDE);

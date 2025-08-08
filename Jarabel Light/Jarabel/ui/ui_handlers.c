@@ -1,9 +1,9 @@
 #include "../core/app.h"
 
 void RepopulateActiveList() {
-    int iPage = TabCtrl_GetCurSel(hTab);
+    const int iPage = TabCtrl_GetCurSel(hTab);
     int filterType = ComboBox_GetCurSel(hFilterComboBox);
-    BOOL isUsn = FALSE;
+    bool isUsn = FALSE;
 
     MasterList* pList = NULL;
     HWND hList = NULL, hSearch = NULL;
@@ -28,10 +28,9 @@ void RepopulateActiveList() {
     }
 }
 
-
-void HandleAppResize(LPARAM lParam) {
-    int width = LOWORD(lParam);
-    int height = HIWORD(lParam);
+void HandleAppResize(const LPARAM lParam) {
+    const int width = LOWORD(lParam);
+    const int height = HIWORD(lParam);
 
     MoveWindow(hTab, 0, 0, width, height, TRUE);
 
@@ -40,20 +39,20 @@ void HandleAppResize(LPARAM lParam) {
     const int spacing = 5;
     const int listTop = topMargin + controlHeight + spacing;
 
-    int center_x = width / 2;
+    const int center_x = width / 2;
 
     MoveWindow(hTitleLabel, 0, topMargin + 20, width, 70, TRUE);
     MoveWindow(hDescLabel, center_x - 250, topMargin + 100, 500, 80, TRUE);
     MoveWindow(hJarScanButton, center_x - 155, topMargin + 190, 150, 30, TRUE);
     MoveWindow(hGlobalClassSearchButton, center_x + 5, topMargin + 190, 150, 30, TRUE);
-    MoveWindow(hMultiThreadCheckBox, center_x - 155, topMargin + 230, 310, 25, TRUE);
+    MoveWindow(hFastScanButton, center_x - 155, topMargin + 190 + 35, 310, 25, TRUE);
     MoveWindow(hNijikaImage, center_x - 125, height - 300, 250, 250, TRUE);
 
     MoveWindow(hSortComboBox, 10, topMargin, 180, 200, TRUE);
     MoveWindow(hFilterComboBox, 10 + 180 + spacing, topMargin, 180, 200, TRUE);
 
-    int searchLeft = 10 + 180 + spacing + 180 + spacing;
-    int searchWidth = width - searchLeft - 15;
+    const int searchLeft = 10 + 180 + spacing + 180 + spacing;
+    const int searchWidth = width - searchLeft - 15;
 
     MoveWindow(hSearchMaven, searchLeft, topMargin, searchWidth, 22, TRUE);
     MoveWindow(hMavenList, 10, listTop, width - 25, height - listTop - 15, TRUE);
@@ -92,25 +91,25 @@ void HandleAppResize(LPARAM lParam) {
     MoveWindow(hProcessList, 10, listTop, width - 25, height - listTop - 15, TRUE);
 }
 
-void ToggleDarkMode(HWND hwnd) {
+void ToggleDarkMode(const HWND hwnd) {
     g_isDarkMode = !g_isDarkMode;
 
     SetClassLongPtrW(hwnd, GCLP_HBRBACKGROUND, (LONG_PTR)(g_isDarkMode ? g_darkBrush : g_lightBrush));
 
     DwmSetWindowAttribute(hwnd, 20, &g_isDarkMode, sizeof(g_isDarkMode));
 
-    COLORREF bkColor = g_isDarkMode ? g_darkBgColor : GetSysColor(COLOR_WINDOW);
+    const COLORREF bkColor = g_isDarkMode ? g_darkBgColor : GetSysColor(COLOR_WINDOW);
 
-    HWND allListViews[] = {
+    const HWND allListViews[] = {
         hMavenList, hGradleList, hForgeList, hFabricList, hMcpList, hLibsList,
         hRunnableJarsList, hJarList, hJournalList, hRecentList, hPrefetchList, hProcessList
     };
-    int numListViews = sizeof(allListViews) / sizeof(HWND);
+    const int numListViews = sizeof(allListViews) / sizeof(HWND);
 
     for (int i = 0; i < numListViews; ++i) {
         if (allListViews[i]) {
             ListView_SetBkColor(allListViews[i], bkColor);
-            HWND hHeader = ListView_GetHeader(allListViews[i]);
+            const HWND hHeader = ListView_GetHeader(allListViews[i]);
             if (hHeader) {
                 RedrawWindow(hHeader, NULL, NULL, RDW_ERASE | RDW_FRAME | RDW_INVALIDATE | RDW_ALLCHILDREN);
             }
@@ -122,18 +121,18 @@ void ToggleDarkMode(HWND hwnd) {
 }
 
 void HandleTabChange() {
-    int iPage = TabCtrl_GetCurSel(hTab);
+    const int iPage = TabCtrl_GetCurSel(hTab);
 
-    BOOL showMainTabUI = (iPage == 0);
-    BOOL showSort = (iPage >= 1 && iPage != 9);
-    BOOL showFilter = (iPage >= 1 && iPage <= 7);
+    const bool showMainTabUI = (iPage == 0);
+    const bool showSort = (iPage >= 1 && iPage != 9);
+    const bool showFilter = (iPage >= 1 && iPage <= 7);
 
     ShowWindow(hTitleLabel, showMainTabUI ? SW_SHOW : SW_HIDE);
     ShowWindow(hDescLabel, showMainTabUI ? SW_SHOW : SW_HIDE);
     ShowWindow(hJarScanButton, showMainTabUI ? SW_SHOW : SW_HIDE);
     ShowWindow(hGlobalClassSearchButton, showMainTabUI ? SW_SHOW : SW_HIDE);
+    ShowWindow(hFastScanButton, showMainTabUI ? SW_SHOW : SW_HIDE);
     ShowWindow(hNijikaImage, showMainTabUI ? SW_SHOW : SW_HIDE);
-    ShowWindow(hMultiThreadCheckBox, showMainTabUI ? SW_SHOW : SW_HIDE);
 
     ShowWindow(hSortComboBox, showSort ? SW_SHOW : SW_HIDE);
     ShowWindow(hFilterComboBox, showFilter ? SW_SHOW : SW_HIDE);
@@ -170,11 +169,11 @@ void HandleTabChange() {
     ShowWindow(hProcessList, iPage == 12 ? SW_SHOW : SW_HIDE);
 }
 
-void HandleSmoothScroll(WPARAM wParam) {
-    int delta = GET_WHEEL_DELTA_WPARAM(wParam);
-    int scrollAmount = (delta > 0) ? -40 : 40;
+void HandleSmoothScroll(const WPARAM wParam) {
+    const int delta = GET_WHEEL_DELTA_WPARAM(wParam);
+    const int scrollAmount = (delta > 0) ? -40 : 40;
 
-    int iPage = TabCtrl_GetCurSel(hTab);
+    const int iPage = TabCtrl_GetCurSel(hTab);
     HWND hCurrentList = NULL;
 
     switch (iPage) {

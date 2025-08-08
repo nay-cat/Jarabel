@@ -1,7 +1,7 @@
 #include "../core/app.h"
 
 LRESULT CALLBACK DarkHeaderSubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData) {
-    (dwRefData), (uIdSubclass);
+    UNREFERENCED_PARAMETER(dwRefData); UNREFERENCED_PARAMETER(uIdSubclass);
 
     if (g_isDarkMode) {
         if (uMsg == WM_ERASEBKGND) {
@@ -9,15 +9,15 @@ LRESULT CALLBACK DarkHeaderSubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPA
         }
         if (uMsg == WM_PAINT) {
             PAINTSTRUCT ps;
-            HDC hdc = BeginPaint(hWnd, &ps);
+            const HDC hdc = BeginPaint(hWnd, &ps);
 
             RECT rcClient;
             GetClientRect(hWnd, &rcClient);
             FillRect(hdc, &rcClient, g_darkTabBrush);
 
-            int nItemCount = Header_GetItemCount(hWnd);
-            HPEN hPen = CreatePen(PS_SOLID, 1, RGB(80, 80, 80));
-            HPEN hOldPen = SelectObject(hdc, hPen);
+            const int nItemCount = Header_GetItemCount(hWnd);
+            const HPEN hPen = CreatePen(PS_SOLID, 1, RGB(80, 80, 80));
+            const HPEN hOldPen = SelectObject(hdc, hPen);
 
             SetTextColor(hdc, g_darkTextColor);
             SetBkMode(hdc, TRANSPARENT);
@@ -28,7 +28,7 @@ LRESULT CALLBACK DarkHeaderSubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPA
                 Header_GetItemRect(hWnd, i, &rcItem);
 
                 WCHAR szText[256] = { 0 };
-                HDITEMW hdi = { .mask = HDI_TEXT | HDI_FORMAT, .pszText = szText, .cchTextMax = 256 };
+                const HDITEMW hdi = { .mask = HDI_TEXT | HDI_FORMAT, .pszText = szText, .cchTextMax = 256 };
                 Header_GetItem(hWnd, i, &hdi);
 
                 rcItem.left += 8;
@@ -48,15 +48,15 @@ LRESULT CALLBACK DarkHeaderSubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPA
     return DefSubclassProc(hWnd, uMsg, wParam, lParam);
 }
 
-void SubclassListViewHeader(HWND hListView) {
-    HWND hHeader = ListView_GetHeader(hListView);
+void SubclassListViewHeader(const HWND hListView) {
+    const HWND hHeader = ListView_GetHeader(hListView);
     if (hHeader) {
         SetWindowSubclass(hHeader, DarkHeaderSubclassProc, 1, 0);
     }
 }
 
 void HandleCustomDraw(LPARAM lParam, LRESULT* pResult) {
-    LPNMCUSTOMDRAW pnmcd = (LPNMCUSTOMDRAW)lParam;
+    const LPNMCUSTOMDRAW pnmcd = (LPNMCUSTOMDRAW)lParam;
     if (pnmcd->hdr.hwndFrom == hTab && g_isDarkMode) {
         switch (pnmcd->dwDrawStage) {
         case CDDS_PREPAINT:
@@ -105,6 +105,44 @@ void HandleCustomDraw(LPARAM lParam, LRESULT* pResult) {
 LRESULT HandleOwnerDraw(LPARAM lParam) {
     DRAWITEMSTRUCT* pdis = (DRAWITEMSTRUCT*)lParam;
 
+    if (pdis->CtlID == ID_BUTTON_FAST_SCAN) {
+        HDC hdc = pdis->hDC;
+        RECT rc = pdis->rcItem;
+
+        FillRect(hdc, &rc, g_isDarkMode ? g_darkBrush : g_lightBrush);
+
+        RECT rcCheck = { rc.left + 5, rc.top + 5, rc.left + 20, rc.bottom - 5 };
+        HBRUSH hbr = (HBRUSH)GetStockObject(g_isDarkMode ? WHITE_BRUSH : BLACK_BRUSH);
+        FrameRect(hdc, &rcCheck, hbr);
+
+        if (g_isFastScanEnabled) {
+            HPEN hPen = CreatePen(PS_SOLID, 2, g_isDarkMode ? g_whiteColor : RGB(0, 0, 0));
+            HPEN hOldPen = SelectObject(hdc, hPen);
+            MoveToEx(hdc, rcCheck.left + 3, rcCheck.top + 3, NULL);
+            LineTo(hdc, rcCheck.right - 3, rcCheck.bottom - 3);
+            MoveToEx(hdc, rcCheck.left + 3, rcCheck.bottom - 3, NULL);
+            LineTo(hdc, rcCheck.right - 3, rcCheck.top + 3);
+            SelectObject(hdc, hOldPen);
+            DeleteObject(hPen);
+        }
+
+        SetBkMode(hdc, TRANSPARENT);
+        SetTextColor(hdc, g_isDarkMode ? g_darkTextColor : GetSysColor(COLOR_BTNTEXT));
+        SelectObject(hdc, g_hFont);
+
+        WCHAR szText[100];
+        GetWindowTextW(pdis->hwndItem, szText, 100);
+        RECT rcText = rc;
+        rcText.left = rcCheck.right + 5;
+        DrawTextW(hdc, szText, -1, &rcText, DT_VCENTER | DT_SINGLELINE);
+
+        if (pdis->itemState & ODS_FOCUS) {
+            DrawFocusRect(hdc, &rc);
+        }
+        return TRUE;
+    }
+
+
     if (pdis->CtlID == ID_NIJIKA_IMAGE) {
         if (g_pNijikaPicture) {
             HDC hdc = pdis->hDC;
@@ -116,33 +154,7 @@ LRESULT HandleOwnerDraw(LPARAM lParam) {
         return TRUE;
     }
 
-    if (pdis->CtlID == ID_CHECKBOX_MULTITHREAD) {
-        HDC hdc = pdis->hDC;
-
-        FillRect(hdc, &pdis->rcItem, g_isDarkMode ? g_darkBrush : g_lightBrush);
-
-        RECT chkBoxRect = { pdis->rcItem.left, pdis->rcItem.top, pdis->rcItem.left + 16, pdis->rcItem.bottom };
-        UINT uState = DFCS_BUTTONCHECK;
-        if (g_useMultiThreading) {
-            uState |= DFCS_CHECKED;
-        }
-        DrawFrameControl(hdc, &chkBoxRect, DFC_BUTTON, uState);
-
-        RECT textRect = pdis->rcItem;
-        textRect.left += 20;
-
-        WCHAR szText[100];
-        GetWindowTextW(pdis->hwndItem, szText, 100);
-
-        SetBkMode(hdc, TRANSPARENT);
-        SetTextColor(hdc, g_isDarkMode ? g_darkTextColor : GetSysColor(COLOR_WINDOWTEXT));
-        SelectObject(hdc, g_hFont);
-
-        DrawTextW(hdc, szText, -1, &textRect, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
-        return TRUE;
-    }
-
-    if (pdis->CtlType == ODT_LISTVIEW && pdis->itemID != -1) {
+    if (pdis->CtlType == ODT_LISTVIEW && pdis->itemID != (unsigned int)-1) {
         COLORREF textCol = g_isDarkMode ? g_darkTextColor : GetSysColor(COLOR_WINDOWTEXT);
 
         if (pdis->itemState & ODS_SELECTED) {
