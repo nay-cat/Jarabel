@@ -3,7 +3,31 @@
 // this is just to hide the call from Codacy, should be automatically forceinlined by the compiler at O2
 int Utf8ToWide(const LPCCH utf8Str, const int bytes, const LPWSTR wideStr, const int wideChars)
 {
-    return MultiByteToWideChar(CP_UTF8, 0, utf8Str, bytes, wideStr, wideChars);
+    if (bytes == 0) {
+        *wideStr = NULL;
+        *wideChars = 0;
+        return 0;
+    }
+
+    *wideChars = MultiByteToWideChar(CP_UTF8, 0, utf8Str, bytes, NULL, 0);
+    if (*wideChars == 0) {
+        *wideStr = NULL;
+        return 0;
+    }
+
+    *wideStr = (LPWSTR)malloc(*wideChars * sizeof(WCHAR));
+    if (*wideStr == NULL) {
+        return 0;
+    }
+
+    int result = MultiByteToWideChar(CP_UTF8, 0, utf8Str, bytes, *wideStr, *wideChars);
+    if (result == 0) {
+        free(*wideStr);
+        *wideStr = NULL;
+        *wideChars = 0;
+    }
+
+    return result;
 }
 
 void __cdecl FormatLargeIntTime(const LARGE_INTEGER li, WCHAR* __restrict buffer, const size_t bufferSize) {
