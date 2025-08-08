@@ -88,6 +88,7 @@ void InitMasterLists() {
 void AddToMasterList(MasterList* pList, void* item) {
     if (pList->count >= pList->capacity) {
         int newCapacity = pList->capacity > 0 ? pList->capacity * 2 : 10;
+
         void** newItems = calloc(newCapacity, sizeof(void*));
         if (newItems == NULL) {
             return;
@@ -95,13 +96,13 @@ void AddToMasterList(MasterList* pList, void* item) {
 
         if (pList->items && pList->count > 0) {
             size_t sizeToCopy = pList->count * sizeof(void*);
-            if (newCapacity * sizeof(void*) >= sizeToCopy) {
-                memcpy(newItems, pList->items, sizeToCopy);
-            }
-            else {
+            size_t destSize = newCapacity * sizeof(void*);
+
+            if (memcpy_s(newItems, destSize, pList->items, sizeToCopy) != 0) {
                 free(newItems);
                 return;
             }
+
             free(pList->items);
         }
 
