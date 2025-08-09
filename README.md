@@ -3,7 +3,8 @@ The name comes from Jar + Abelle
 ---
 ⭐ Recommended
 > [Jarabel Light](https://github.com/nay-cat/Jarabel/releases/download/light/Jarabel.Light.exe)
-> [Jarabel for Java 8](https://github.com/nay-cat/Jarabel/releases/download/1.0.6/Jarabel.1.0.6.rar)
+
+> [Jarabel for Java 8](https://github.com/nay-cat/Jarabel/releases/download/final/Jarabel.Final.rar)
 ---
 
 ```diff
