@@ -1,5 +1,7 @@
 #include "../core/app.h"
 
+void SetControlsForTab(int iPage, BOOL bShow);
+
 void RepopulateActiveList() {
     const int iPage = TabCtrl_GetCurSel(hTab);
     int filterType = ComboBox_GetCurSel(hFilterComboBox);
@@ -45,7 +47,6 @@ void HandleAppResize(const LPARAM lParam) {
     MoveWindow(hDescLabel, center_x - 250, topMargin + 100, 500, 80, TRUE);
     MoveWindow(hJarScanButton, center_x - 155, topMargin + 190, 150, 30, TRUE);
     MoveWindow(hGlobalClassSearchButton, center_x + 5, topMargin + 190, 150, 30, TRUE);
-    MoveWindow(hFastScanButton, center_x - 155, topMargin + 190 + 35, 310, 25, TRUE);
     MoveWindow(hNijikaImage, center_x - 125, height - 300, 250, 250, TRUE);
 
     MoveWindow(hSortComboBox, 10, topMargin, 180, 200, TRUE);
@@ -104,7 +105,7 @@ void ToggleDarkMode(const HWND hwnd) {
         hMavenList, hGradleList, hForgeList, hFabricList, hMcpList, hLibsList,
         hRunnableJarsList, hJarList, hJournalList, hRecentList, hPrefetchList, hProcessList
     };
-    const int numListViews = sizeof(allListViews) / sizeof(HWND);
+    const int numListViews = sizeof(allListViews) / sizeof(allListViews);
 
     for (int i = 0; i < numListViews; ++i) {
         if (allListViews[i]) {
@@ -116,57 +117,136 @@ void ToggleDarkMode(const HWND hwnd) {
         }
     }
 
+    DrawMenuBar(hwnd);
+
     InvalidateRect(hwnd, NULL, TRUE);
     UpdateWindow(hwnd);
 }
 
-void HandleTabChange() {
+static AnimatedControl* GetControlsForTab(int iPage, int* pCount) {
+    HWND handles[20] = { 0 };
+    int count = 0;
+
+    switch (iPage) {
+    case 0:
+        handles[count++] = hTitleLabel;
+        handles[count++] = hDescLabel;
+        handles[count++] = hJarScanButton;
+        handles[count++] = hGlobalClassSearchButton;
+        handles[count++] = hNijikaImage;
+        break;
+    case 1:
+        handles[count++] = hSortComboBox; handles[count++] = hFilterComboBox;
+        handles[count++] = hSearchMaven; handles[count++] = hMavenList;
+        break;
+    case 2:
+        handles[count++] = hSortComboBox; handles[count++] = hFilterComboBox;
+        handles[count++] = hSearchGradle; handles[count++] = hGradleList;
+        break;
+    case 3:
+        handles[count++] = hSortComboBox; handles[count++] = hFilterComboBox;
+        handles[count++] = hSearchForge; handles[count++] = hForgeList;
+        break;
+    case 4:
+        handles[count++] = hSortComboBox; handles[count++] = hFilterComboBox;
+        handles[count++] = hSearchFabric; handles[count++] = hFabricList;
+        break;
+    case 5:
+        handles[count++] = hSortComboBox; handles[count++] = hFilterComboBox;
+        handles[count++] = hSearchMcp; handles[count++] = hMcpList;
+        break;
+    case 6:
+        handles[count++] = hSortComboBox; handles[count++] = hFilterComboBox;
+        handles[count++] = hSearchLibs; handles[count++] = hLibsList;
+        break;
+    case 7:
+        handles[count++] = hSortComboBox; handles[count++] = hFilterComboBox;
+        handles[count++] = hSearchRunnableJars; handles[count++] = hRunnableJarsList;
+        break;
+    case 8:
+        handles[count++] = hJarButton; handles[count++] = hSearchClasses;
+        handles[count++] = hJarList; handles[count++] = hEntropyLabel;
+        break;
+    case 9:
+        handles[count++] = hJournalButton; handles[count++] = hSearchJournal;
+        handles[count++] = hJournalList;
+        break;
+    case 10:
+        handles[count++] = hSortComboBox;
+        handles[count++] = hRecentButton; handles[count++] = hSearchRecent;
+        handles[count++] = hRecentList;
+        break;
+    case 11:
+        handles[count++] = hSortComboBox;
+        handles[count++] = hPrefetchButton; handles[count++] = hSearchPrefetch;
+        handles[count++] = hPrefetchList;
+        break;
+    case 12:
+        handles[count++] = hSortComboBox;
+        handles[count++] = hProcessScanButton; handles[count++] = hSearchProcesses;
+        handles[count++] = hProcessList;
+        break;
+    }
+
+    *pCount = count;
+    if (count == 0) return NULL;
+
+    AnimatedControl* pControls = malloc(count * sizeof(AnimatedControl));
+    if (pControls) {
+        for (int i = 0; i < count; i++) {
+            pControls[i].hWnd = handles[i];
+        }
+    }
+    return pControls;
+}
+
+void SetControlsForTab(int iPage, BOOL bShow) {
+    int count = 0;
+    AnimatedControl* controls = GetControlsForTab(iPage, &count);
+    if (controls) {
+        for (int i = 0; i < count; i++) {
+            ShowWindow(controls[i].hWnd, bShow ? SW_SHOW : SW_HIDE);
+        }
+        free(controls);
+    }
+}
+
+void HandleTabChange(HWND hwnd) {
+    if (g_tabAnimation.isAnimating) return;
+
     const int iPage = TabCtrl_GetCurSel(hTab);
+    if (iPage == g_currentPage) return;
 
-    const bool showMainTabUI = (iPage == 0);
-    const bool showSort = (iPage >= 1 && iPage != 9);
-    const bool showFilter = (iPage >= 1 && iPage <= 7);
+    SetControlsForTab(g_currentPage, FALSE);
 
-    ShowWindow(hTitleLabel, showMainTabUI ? SW_SHOW : SW_HIDE);
-    ShowWindow(hDescLabel, showMainTabUI ? SW_SHOW : SW_HIDE);
-    ShowWindow(hJarScanButton, showMainTabUI ? SW_SHOW : SW_HIDE);
-    ShowWindow(hGlobalClassSearchButton, showMainTabUI ? SW_SHOW : SW_HIDE);
-    ShowWindow(hFastScanButton, showMainTabUI ? SW_SHOW : SW_HIDE);
-    ShowWindow(hNijikaImage, showMainTabUI ? SW_SHOW : SW_HIDE);
+    g_tabAnimation.newTab = iPage;
+    g_tabAnimation.controls = GetControlsForTab(iPage, &g_tabAnimation.numControls);
+    if (!g_tabAnimation.controls) {
+        g_currentPage = iPage;
+        return;
+    }
 
-    ShowWindow(hSortComboBox, showSort ? SW_SHOW : SW_HIDE);
-    ShowWindow(hFilterComboBox, showFilter ? SW_SHOW : SW_HIDE);
+    g_tabAnimation.startYOffset = 30;
 
-    ShowWindow(hSearchMaven, iPage == 1 ? SW_SHOW : SW_HIDE);
-    ShowWindow(hMavenList, iPage == 1 ? SW_SHOW : SW_HIDE);
-    ShowWindow(hSearchGradle, iPage == 2 ? SW_SHOW : SW_HIDE);
-    ShowWindow(hGradleList, iPage == 2 ? SW_SHOW : SW_HIDE);
-    ShowWindow(hSearchForge, iPage == 3 ? SW_SHOW : SW_HIDE);
-    ShowWindow(hForgeList, iPage == 3 ? SW_SHOW : SW_HIDE);
-    ShowWindow(hSearchFabric, iPage == 4 ? SW_SHOW : SW_HIDE);
-    ShowWindow(hFabricList, iPage == 4 ? SW_SHOW : SW_HIDE);
-    ShowWindow(hSearchMcp, iPage == 5 ? SW_SHOW : SW_HIDE);
-    ShowWindow(hMcpList, iPage == 5 ? SW_SHOW : SW_HIDE);
-    ShowWindow(hSearchLibs, iPage == 6 ? SW_SHOW : SW_HIDE);
-    ShowWindow(hLibsList, iPage == 6 ? SW_SHOW : SW_HIDE);
-    ShowWindow(hSearchRunnableJars, iPage == 7 ? SW_SHOW : SW_HIDE);
-    ShowWindow(hRunnableJarsList, iPage == 7 ? SW_SHOW : SW_HIDE);
-    ShowWindow(hJarButton, iPage == 8 ? SW_SHOW : SW_HIDE);
-    ShowWindow(hSearchClasses, iPage == 8 ? SW_SHOW : SW_HIDE);
-    ShowWindow(hJarList, iPage == 8 ? SW_SHOW : SW_HIDE);
-    ShowWindow(hEntropyLabel, iPage == 8 ? SW_SHOW : SW_HIDE);
-    ShowWindow(hJournalButton, iPage == 9 ? SW_SHOW : SW_HIDE);
-    ShowWindow(hSearchJournal, iPage == 9 ? SW_SHOW : SW_HIDE);
-    ShowWindow(hJournalList, iPage == 9 ? SW_SHOW : SW_HIDE);
-    ShowWindow(hRecentButton, iPage == 10 ? SW_SHOW : SW_HIDE);
-    ShowWindow(hSearchRecent, iPage == 10 ? SW_SHOW : SW_HIDE);
-    ShowWindow(hRecentList, iPage == 10 ? SW_SHOW : SW_HIDE);
-    ShowWindow(hPrefetchButton, iPage == 11 ? SW_SHOW : SW_HIDE);
-    ShowWindow(hSearchPrefetch, iPage == 11 ? SW_SHOW : SW_HIDE);
-    ShowWindow(hPrefetchList, iPage == 11 ? SW_SHOW : SW_HIDE);
-    ShowWindow(hProcessScanButton, iPage == 12 ? SW_SHOW : SW_HIDE);
-    ShowWindow(hSearchProcesses, iPage == 12 ? SW_SHOW : SW_HIDE);
-    ShowWindow(hProcessList, iPage == 12 ? SW_SHOW : SW_HIDE);
+    HDWP hdwp = BeginDeferWindowPos(g_tabAnimation.numControls);
+    if (hdwp) {
+        for (int i = 0; i < g_tabAnimation.numControls; i++) {
+            GetWindowRect(g_tabAnimation.controls[i].hWnd, &g_tabAnimation.controls[i].finalRect);
+            MapWindowPoints(HWND_DESKTOP, hwnd, (LPPOINT)&g_tabAnimation.controls[i].finalRect, 2);
+
+            DeferWindowPos(hdwp, g_tabAnimation.controls[i].hWnd, NULL,
+                g_tabAnimation.controls[i].finalRect.left,
+                g_tabAnimation.controls[i].finalRect.top + g_tabAnimation.startYOffset,
+                0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_SHOWWINDOW);
+        }
+        EndDeferWindowPos(hdwp);
+    }
+
+    g_tabAnimation.isAnimating = TRUE;
+    g_tabAnimation.startTime = GetTickCount64();
+    g_tabAnimation.timerId = SetTimer(hwnd, ID_ANIMATION_TIMER, 10, NULL);
+
+    g_currentPage = iPage;
 }
 
 void HandleSmoothScroll(const WPARAM wParam) {

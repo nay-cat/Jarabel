@@ -21,21 +21,11 @@ static void JarFoundCallback(const WCHAR* path, void* context) {
     }
 }
 
-unsigned __stdcall StableJarScanThread(void* __restrict pArguments) {
+unsigned __stdcall JarScanThread(void* __restrict pArguments) {
     HWND hOwnerWnd = (HWND)pArguments;
 
     ClearAllJarLists();
-    RunStableScan(JarFoundCallback, hOwnerWnd);
-
-    PostMessageW(hOwnerWnd, WM_APP_JAR_SCAN_COMPLETE, 0, 0);
-    return 0;
-}
-
-unsigned __stdcall UnstableJarScanThread(void* __restrict pArguments) {
-    HWND hOwnerWnd = (HWND)pArguments;
-
-    ClearAllJarLists();
-    RunUnstableScan(JarFoundCallback, hOwnerWnd);
+    ScanSystemJars(JarFoundCallback, hOwnerWnd);
 
     PostMessageW(hOwnerWnd, WM_APP_JAR_SCAN_COMPLETE, 0, 0);
     return 0;

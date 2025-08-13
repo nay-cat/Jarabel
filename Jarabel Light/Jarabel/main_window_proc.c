@@ -5,8 +5,8 @@
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     switch (msg) {
     case WM_CREATE:
-        g_isFastScanEnabled = FALSE;
         CreateUI(hwnd);
+        g_currentPage = 0;
         break;
 
     case WM_COMMAND: {
@@ -53,14 +53,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         switch (identifier) {
         case ID_BUTTON_JAR_SCAN:
         {
-            uintptr_t hThread = 0;
-            if (g_isFastScanEnabled) {
-                hThread = _beginthreadex(NULL, 0, &UnstableJarScanThread, hwnd, 0, NULL);
-            }
-            else {
-                hThread = _beginthreadex(NULL, 0, &StableJarScanThread, hwnd, 0, NULL);
-            }
-
+            uintptr_t hThread = _beginthreadex(NULL, 0, &JarScanThread, hwnd, 0, NULL);
             if (hThread) {
                 CloseHandle((HANDLE)(hThread));
             }
@@ -73,13 +66,9 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
             EnableWindow(hJarScanButton, FALSE);
             SetWindowTextW(hJarScanButton, L"Scanning...");
-            SetCursor(LoadCursor(NULL, IDC_WAIT));
+            SetCursor(LoadCursorA(NULL, IDC_WAIT));
             break;
         }
-        case ID_BUTTON_FAST_SCAN:
-            g_isFastScanEnabled = !g_isFastScanEnabled;
-            InvalidateRect(hFastScanButton, NULL, TRUE);
-            break;
         case ID_BUTTON_GLOBAL_CLASS_SEARCH:
         {
             int totalJars = g_allJarsMasterList.count;
@@ -256,13 +245,55 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         }
         break;
     }
+    case WM_TIMER:
+        if (wParam == ID_ANIMATION_TIMER) {
+            ULONGLONG elapsed = GetTickCount64() - g_tabAnimation.startTime;
+            double duration = 140.0;
+
+            if (elapsed >= duration) {
+                KillTimer(hwnd, g_tabAnimation.timerId);
+
+                HDWP hdwp = BeginDeferWindowPos(g_tabAnimation.numControls);
+                if (hdwp) {
+                    for (int i = 0; i < g_tabAnimation.numControls; i++) {
+                        DeferWindowPos(hdwp, g_tabAnimation.controls[i].hWnd, NULL,
+                            g_tabAnimation.controls[i].finalRect.left,
+                            g_tabAnimation.controls[i].finalRect.top,
+                            0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
+                    }
+                    EndDeferWindowPos(hdwp);
+                }
+
+                free(g_tabAnimation.controls);
+                g_tabAnimation.controls = NULL;
+                g_tabAnimation.isAnimating = FALSE;
+            }
+            else {
+                double progress = (double)elapsed / duration;
+                double easeProgress = 1.0 - pow(1.0 - progress, 3);
+
+                int currentYOffset = (int)(g_tabAnimation.startYOffset * (1.0 - easeProgress));
+
+                HDWP hdwp = BeginDeferWindowPos(g_tabAnimation.numControls);
+                if (hdwp) {
+                    for (int i = 0; i < g_tabAnimation.numControls; i++) {
+                        int newY = g_tabAnimation.controls[i].finalRect.top + currentYOffset;
+                        DeferWindowPos(hdwp, g_tabAnimation.controls[i].hWnd, NULL,
+                            g_tabAnimation.controls[i].finalRect.left, newY,
+                            0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
+                    }
+                    EndDeferWindowPos(hdwp);
+                }
+            }
+        }
+        return 0;
     case WM_MOUSEWHEEL:
         HandleSmoothScroll(wParam);
         return 0;
     case WM_NOTIFY: {
         LPNMHDR lpnmh = (LPNMHDR)lParam;
         if (lpnmh->code == TCN_SELCHANGE) {
-            HandleTabChange();
+            HandleTabChange(hwnd);
         }
         else if (lpnmh->code == NM_RCLICK) {
             LPNMITEMACTIVATE lpnmitem = (LPNMITEMACTIVATE)lParam;

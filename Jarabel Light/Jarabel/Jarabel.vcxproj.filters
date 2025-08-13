@@ -123,13 +123,10 @@
     <ClCompile Include="utils\parser.c">
       <Filter>Source Files\utils</Filter>
     </ClCompile>
-    <ClCompile Include="scan\fast_scan.c">
-      <Filter>Source Files\scan</Filter>
-    </ClCompile>
-    <ClCompile Include="scan\stable_scan.cpp">
-      <Filter>Source Files\scan</Filter>
-    </ClCompile>
     <ClCompile Include="scan\threads.c">
+      <Filter>Source Files\scan</Filter>
+    </ClCompile>
+    <ClCompile Include="scan\scan.c">
       <Filter>Source Files\scan</Filter>
     </ClCompile>
   </ItemGroup>
@@ -176,17 +173,14 @@
     <ClInclude Include="res\resource.h">
       <Filter>Header Files\res</Filter>
     </ClInclude>
-    <ClInclude Include="scan\fast_scan.h">
-      <Filter>Header Files\src\scan</Filter>
-    </ClInclude>
     <ClInclude Include="scan\scanner_callbacks.h">
-      <Filter>Header Files\src\scan</Filter>
-    </ClInclude>
-    <ClInclude Include="scan\stable_scan.hpp">
       <Filter>Header Files\src\scan</Filter>
     </ClInclude>
     <ClInclude Include="scan\threads.h">
       <Filter>Header Files\src\scan</Filter>
+    </ClInclude>
+    <ClInclude Include="scan\scan.h">
+      <Filter>Source Files\scan</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

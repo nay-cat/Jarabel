@@ -43,7 +43,7 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
         return 2;
     }
 
-    bool useDarkMode = TRUE;
+    BOOL useDarkMode = TRUE;
     DwmSetWindowAttribute(hwnd, 20, &useDarkMode, sizeof(useDarkMode));
 
     ShowWindow(hwnd, nCmdShow);
@@ -64,7 +64,9 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
     DeleteCriticalSection(&g_listLock);
     RestoreOriginalHighlightColor();
 
-    // _CrtDumpMemoryLeaks();
+    #ifdef __JARABEL_DEBUG__
+        _CrtDumpMemoryLeaks();
+    #endif
 
     return (int)msg.wParam;
 }
