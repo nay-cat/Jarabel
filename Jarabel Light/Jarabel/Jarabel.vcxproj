@@ -158,8 +158,7 @@
     <ClCompile Include="core\globals.c" />
     <ClCompile Include="Jarabel.c" />
     <ClCompile Include="main_window_proc.c" />
-    <ClCompile Include="scan\fast_scan.c" />
-    <ClCompile Include="scan\stable_scan.cpp" />
+    <ClCompile Include="scan\scan.c" />
     <ClCompile Include="scan\threads.c" />
     <ClCompile Include="ui\ui_creation.c" />
     <ClCompile Include="ui\ui_drawing.c" />
@@ -181,9 +180,8 @@
     <ClInclude Include="main_window_proc.h" />
     <ClInclude Include="res\ids.h" />
     <ClInclude Include="res\resource.h" />
-    <ClInclude Include="scan\fast_scan.h" />
+    <ClInclude Include="scan\scan.h" />
     <ClInclude Include="scan\scanner_callbacks.h" />
-    <ClInclude Include="scan\stable_scan.hpp" />
     <ClInclude Include="scan\threads.h" />
     <ClInclude Include="ui\ui_creation.h" />
     <ClInclude Include="ui\ui_drawing.h" />

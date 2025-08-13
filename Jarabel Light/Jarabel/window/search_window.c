@@ -3,7 +3,9 @@
 static WCHAR g_cachedJarPath[MAX_PATH] = { 0 };
 static MasterList g_cachedClassNames;
 static bool g_cacheInitialized = FALSE;
-static WCHAR g_currentSearchTerm[256] = { 0 }; 
+static WCHAR g_currentSearchTerm[256] = { 0 };
+
+LRESULT CALLBACK SearchEditSubclassProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData);
 
 static void ClearVirtualSearchCache() {
     if (g_cacheInitialized) {
@@ -29,7 +31,6 @@ static void PopulateCacheCallback(const CDHeader* header, const char* filename, 
         }
     }
 }
-
 
 static bool GetClassEntryForIndex(const int globalIndex, ClassEntry* pEntry) {
     if (!pEntry || globalIndex < 0) return FALSE;
@@ -84,17 +85,32 @@ static bool GetClassEntryForIndex(const int globalIndex, ClassEntry* pEntry) {
     return FALSE;
 }
 
+LRESULT CALLBACK SearchEditSubclassProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData) {
+    UNREFERENCED_PARAMETER(uIdSubclass);
+    UNREFERENCED_PARAMETER(dwRefData);
+
+    if (uMsg == WM_KEYDOWN && wParam == VK_RETURN) {
+        SendMessage(GetParent(hwnd), WM_COMMAND, MAKEWPARAM(ID_GLOBAL_SEARCH_BUTTON, BN_CLICKED), 0);
+        return 0; 
+    }
+
+    return DefSubclassProc(hwnd, uMsg, wParam, lParam);
+}
+
 LRESULT CALLBACK GlobalSearchWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     static HWND hSearch, hList, hSearchBtn;
     static int s_nClickedItem = -1;
 
     switch (msg) {
     case WM_CREATE: {
-        bool useDarkMode = TRUE;
+        BOOL useDarkMode = TRUE;
         DwmSetWindowAttribute(hwnd, 20, &useDarkMode, sizeof(useDarkMode));
 
         hSearch = CreateWindowW(L"EDIT", L"", WS_CHILD | WS_VISIBLE | WS_BORDER | ES_AUTOHSCROLL,
             10, 10, 675, 25, hwnd, (HMENU)ID_GLOBAL_SEARCH_EDIT, NULL, NULL);
+
+        SetWindowSubclass(hSearch, SearchEditSubclassProc, 0, 0);
+
         hSearchBtn = CreateWindowW(L"BUTTON", L"Search", WS_CHILD | WS_VISIBLE | WS_TABSTOP,
             690, 10, 80, 25, hwnd, (HMENU)ID_GLOBAL_SEARCH_BUTTON, NULL, NULL);
 
@@ -192,8 +208,14 @@ LRESULT CALLBACK GlobalSearchWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
     case WM_APP_GLOBAL_SEARCH_COMPLETE: {
         EnableWindow(hSearch, TRUE);
         EnableWindow(hSearchBtn, TRUE);
-        ListView_SetItemCountEx(hList, (int)wParam, LVSICF_NOINVALIDATEALL | LVSICF_NOSCROLL);
+
+        const int resultCount = (int)wParam;
+        ListView_SetItemCountEx(hList, resultCount, LVSICF_NOINVALIDATEALL | LVSICF_NOSCROLL);
         RedrawWindow(hList, NULL, NULL, RDW_INVALIDATE | RDW_ERASE);
+
+        WCHAR message[100];
+        swprintf_s(message, 100, L"Search complete. Found %d results.", resultCount);
+        MessageBoxW(hwnd, message, L"Global Search Status", MB_OK | MB_ICONINFORMATION);
         break;
     }
 
@@ -214,6 +236,8 @@ LRESULT CALLBACK GlobalSearchWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
     }
 
     case WM_CLOSE: {
+        RemoveWindowSubclass(hSearch, SearchEditSubclassProc, 0);
+
         ClearVirtualSearchCache();
         EnterCriticalSection(&g_listLock);
         DestroyMasterList(&g_globalSearchMasterList);

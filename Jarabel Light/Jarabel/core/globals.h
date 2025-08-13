@@ -16,6 +16,8 @@
 #include <ShlObj.h>      
 #include <stdbool.h>
 
+#define ID_ANIMATION_TIMER 1
+
 typedef struct {
     void** items;
     int count;
@@ -34,11 +36,11 @@ typedef enum {
 } JarScanTypeFlags;
 
 typedef struct {
-    BYTE type;                   
+    BYTE type;
     WCHAR szFilePath[MAX_PATH];
     ULARGE_INTEGER liFileSize;
     FILETIME ftLastAccessTime;
-    bool isObfuscated;               
+    bool isObfuscated;
 } FileInfo;
 
 typedef struct {
@@ -82,25 +84,39 @@ typedef struct { uint32_t sig; uint16_t vNeeded, flag, comp; uint16_t modTime, m
 
 #pragma pack(pop)
 
+typedef struct {
+    HWND hWnd;
+    RECT finalRect;
+} AnimatedControl;
+
+typedef struct {
+    BOOL isAnimating;
+    UINT_PTR timerId;
+    ULONGLONG startTime;
+    int startYOffset;
+    int newTab;
+    AnimatedControl* controls;
+    int numControls;
+} TabAnimationState;
 
 extern IPicture* g_pNijikaPicture;
 extern HFONT g_hFont, g_hFontBold, g_hFontTitle;
 extern HBRUSH g_darkBrush, g_lightBrush, g_darkBtnBrush, g_darkTabBrush, g_tabHighlightBrush;
-extern COLORREF g_darkBgColor, g_darkTextColor, g_whiteColor, g_highlightColor, g_neutralColor;
+extern COLORREF g_darkBgColor, g_darkTabColor, g_darkBtnColor, g_darkTextColor, g_whiteColor, g_highlightColor, g_neutralColor;
 extern COLORREF g_originalHighlightColor, g_originalHighlightTextColor;
-extern bool g_isDarkMode;
-extern bool g_isFastScanEnabled;
+extern BOOL g_isDarkMode;
 
 extern CRITICAL_SECTION g_listLock;
 
 extern HWND hTab;
 extern HWND hJarList, hJournalList, hRecentList, hPrefetchList, hProcessList;
 extern HWND hMavenList, hGradleList, hForgeList, hFabricList, hMcpList, hLibsList, hRunnableJarsList;
-extern HWND hJarButton, hJournalButton, hRecentButton, hPrefetchButton, hJarScanButton, hProcessScanButton, hGlobalClassSearchButton, hFastScanButton;
+extern HWND hJarButton, hJournalButton, hRecentButton, hPrefetchButton, hJarScanButton, hProcessScanButton, hGlobalClassSearchButton;
 extern HWND hSearchMaven, hSearchGradle, hSearchForge, hSearchFabric, hSearchMcp, hSearchLibs, hSearchRunnableJars;
 extern HWND hSearchClasses, hSearchJournal, hSearchRecent, hSearchPrefetch, hSearchProcesses;
 extern HWND hSortComboBox, hFilterComboBox;
 extern HWND hNijikaImage, hEntropyLabel, hTitleLabel, hDescLabel;
+extern HWND hTabPageBg;
 
 extern MasterList g_allJarsMasterList;
 extern MasterList g_mavenMasterList, g_gradleMasterList, g_forgeMasterList, g_fabricMasterList, g_mcpMasterList, g_libsMasterList, g_runnableJarsMasterList;
@@ -109,3 +125,6 @@ extern MasterList g_globalSearchMasterList;
 
 extern int g_clickedItemIndex;
 extern HWND g_hClickedListView;
+
+extern int g_currentPage;
+extern TabAnimationState g_tabAnimation;

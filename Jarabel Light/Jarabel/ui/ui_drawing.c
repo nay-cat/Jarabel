@@ -16,10 +16,10 @@ LRESULT CALLBACK DarkHeaderSubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPA
             FillRect(hdc, &rcClient, g_darkTabBrush);
 
             const int nItemCount = Header_GetItemCount(hWnd);
-            const HPEN hPen = CreatePen(PS_SOLID, 1, RGB(80, 80, 80));
+            const HPEN hPen = CreatePen(PS_SOLID, 1, RGB(60, 60, 60));
             const HPEN hOldPen = SelectObject(hdc, hPen);
 
-            SetTextColor(hdc, g_darkTextColor);
+            SetTextColor(hdc, g_whiteColor);
             SetBkMode(hdc, TRANSPARENT);
             SelectObject(hdc, g_hFont);
 
@@ -48,6 +48,73 @@ LRESULT CALLBACK DarkHeaderSubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPA
     return DefSubclassProc(hWnd, uMsg, wParam, lParam);
 }
 
+LRESULT CALLBACK TabSubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData) {
+    UNREFERENCED_PARAMETER(uIdSubclass);
+    UNREFERENCED_PARAMETER(dwRefData);
+
+    if (g_isDarkMode) {
+        if (uMsg == WM_ERASEBKGND) {
+            // Prevent default erase to eliminate flicker
+            return 1;
+        }
+        if (uMsg == WM_PAINT) {
+            PAINTSTRUCT ps;
+            HDC hdc = BeginPaint(hWnd, &ps);
+
+            // the entire background correctly.
+            RECT rcClient;
+            GetClientRect(hWnd, &rcClient);
+
+            // entire control with the color for the tab bar area
+            FillRect(hdc, &rcClient, g_darkTabBrush);
+
+            // inner content area (the "page")
+            RECT rcPage = rcClient;
+            TabCtrl_AdjustRect(hWnd, FALSE, &rcPage);
+
+            // content area with the main dark background color
+            if (rcPage.top < rcPage.bottom) {
+                FillRect(hdc, &rcPage, g_darkBrush);
+            }
+
+            // paint all tab items (the foreground)
+            const int iTabCount = TabCtrl_GetItemCount(hWnd);
+            const int iSelectedTab = TabCtrl_GetCurSel(hWnd);
+            SetBkMode(hdc, TRANSPARENT);
+
+            for (int i = 0; i < iTabCount; i++) {
+                RECT rcTab = { 0 };
+                TabCtrl_GetItemRect(hWnd, i, &rcTab);
+
+                WCHAR szText[256] = { 0 };
+                TCITEMW tci = { .mask = TCIF_TEXT, .pszText = szText, .cchTextMax = _countof(szText) };
+                TabCtrl_GetItem(hWnd, i, &tci);
+
+                // Set text color to white for all tabs to ensure visibility
+                SetTextColor(hdc, g_whiteColor);
+                SelectObject(hdc, (i == iSelectedTab) ? g_hFontBold : g_hFont);
+
+                // Draw the tab label
+                RECT rcTabText = rcTab;
+                rcTabText.left += 8;
+                rcTabText.right -= 8;
+                DrawTextW(hdc, szText, -1, &rcTabText, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+
+                // the underline highlight for the selected tab
+                if (i == iSelectedTab) {
+                    RECT rcUnderline = { rcTab.left, rcTab.bottom - 2, rcTab.right, rcTab.bottom };
+                    FillRect(hdc, &rcUnderline, g_tabHighlightBrush);
+                }
+            }
+
+            EndPaint(hWnd, &ps);
+            return 0;
+        }
+    }
+
+    return DefSubclassProc(hWnd, uMsg, wParam, lParam);
+}
+
 void SubclassListViewHeader(const HWND hListView) {
     const HWND hHeader = ListView_GetHeader(hListView);
     if (hHeader) {
@@ -56,92 +123,17 @@ void SubclassListViewHeader(const HWND hListView) {
 }
 
 void HandleCustomDraw(LPARAM lParam, LRESULT* pResult) {
+    //  It remains for any other controls that might use NM_CUSTOMDRAW in the future
     const LPNMCUSTOMDRAW pnmcd = (LPNMCUSTOMDRAW)lParam;
     if (pnmcd->hdr.hwndFrom == hTab && g_isDarkMode) {
-        switch (pnmcd->dwDrawStage) {
-        case CDDS_PREPAINT:
-            FillRect(pnmcd->hdc, &pnmcd->rc, g_darkTabBrush);
-            *pResult = CDRF_NOTIFYITEMDRAW;
-            return;
-
-        case CDDS_ITEMPREPAINT: {
-            HDC hdc = pnmcd->hdc;
-            int iTab = (int)pnmcd->dwItemSpec;
-            int iSelectedTab = TabCtrl_GetCurSel(hTab);
-
-            RECT rcTab = { 0 };
-            TabCtrl_GetItemRect(hTab, iTab, &rcTab);
-
-            WCHAR szText[256] = { 0 };
-            TCITEMW tci = { .mask = TCIF_TEXT, .pszText = szText, .cchTextMax = 256 };
-            TabCtrl_GetItem(hTab, iTab, &tci);
-
-            SetBkMode(hdc, TRANSPARENT);
-
-            if (iTab == iSelectedTab) {
-                SetTextColor(hdc, g_whiteColor);
-                SelectObject(hdc, g_hFontBold);
-
-                RECT rcUnderline = { rcTab.left, rcTab.bottom - 3, rcTab.right, rcTab.bottom };
-                FillRect(hdc, &rcUnderline, g_tabHighlightBrush);
-            }
-            else {
-                SetTextColor(hdc, g_neutralColor);
-                SelectObject(hdc, g_hFont);
-            }
-
-            rcTab.left += 8;
-            rcTab.right -= 8;
-            DrawTextW(hdc, szText, -1, &rcTab, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
-
-            *pResult = CDRF_SKIPDEFAULT;
-            return;
-        }
-        }
+        // Since TabSubclassProc now returns 0 on WM_PAINT, this code path will not be executed and yes this is the intended behavior
     }
+
     *pResult = CDRF_DODEFAULT;
 }
 
 LRESULT HandleOwnerDraw(LPARAM lParam) {
     DRAWITEMSTRUCT* pdis = (DRAWITEMSTRUCT*)lParam;
-
-    if (pdis->CtlID == ID_BUTTON_FAST_SCAN) {
-        HDC hdc = pdis->hDC;
-        RECT rc = pdis->rcItem;
-
-        FillRect(hdc, &rc, g_isDarkMode ? g_darkBrush : g_lightBrush);
-
-        RECT rcCheck = { rc.left + 5, rc.top + 5, rc.left + 20, rc.bottom - 5 };
-        HBRUSH hbr = (HBRUSH)GetStockObject(g_isDarkMode ? WHITE_BRUSH : BLACK_BRUSH);
-        FrameRect(hdc, &rcCheck, hbr);
-
-        if (g_isFastScanEnabled) {
-            HPEN hPen = CreatePen(PS_SOLID, 2, g_isDarkMode ? g_whiteColor : RGB(0, 0, 0));
-            HPEN hOldPen = SelectObject(hdc, hPen);
-            MoveToEx(hdc, rcCheck.left + 3, rcCheck.top + 3, NULL);
-            LineTo(hdc, rcCheck.right - 3, rcCheck.bottom - 3);
-            MoveToEx(hdc, rcCheck.left + 3, rcCheck.bottom - 3, NULL);
-            LineTo(hdc, rcCheck.right - 3, rcCheck.top + 3);
-            SelectObject(hdc, hOldPen);
-            DeleteObject(hPen);
-        }
-
-        SetBkMode(hdc, TRANSPARENT);
-        SetTextColor(hdc, g_isDarkMode ? g_darkTextColor : GetSysColor(COLOR_BTNTEXT));
-        SelectObject(hdc, g_hFont);
-
-        WCHAR szText[100];
-        GetWindowTextW(pdis->hwndItem, szText, 100);
-        RECT rcText = rc;
-        rcText.left = rcCheck.right + 5;
-        DrawTextW(hdc, szText, -1, &rcText, DT_VCENTER | DT_SINGLELINE);
-
-        if (pdis->itemState & ODS_FOCUS) {
-            DrawFocusRect(hdc, &rc);
-        }
-        return TRUE;
-    }
-
 
     if (pdis->CtlID == ID_NIJIKA_IMAGE) {
         if (g_pNijikaPicture) {
@@ -267,12 +259,12 @@ LRESULT HandleCtlColor(UINT msg, WPARAM wParam) {
     SetTextColor(hdc, g_darkTextColor);
 
     if (msg == WM_CTLCOLOREDIT) {
-        SetBkColor(hdc, RGB(50, 50, 50));
+        SetBkColor(hdc, RGB(48, 48, 50));
         return (LRESULT)g_darkBtnBrush;
     }
 
     if (msg == WM_CTLCOLORBTN) {
-        SetBkColor(hdc, RGB(60, 60, 60));
+        SetBkColor(hdc, g_darkBtnColor);
         return (LRESULT)g_darkBtnBrush;
     }
 

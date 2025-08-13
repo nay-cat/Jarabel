@@ -1,5 +1,7 @@
 #include "../core/app.h"
 
+LRESULT CALLBACK TabSubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData);
+
 void CreateUI(HWND hwnd) {
     HMENU hMenuBar = CreateMenu(); HMENU hViewMenu = CreateMenu();
     AppendMenuW(hViewMenu, MF_STRING, ID_MENU_TOGGLE_DARK_MODE, L"Toggle Light/Dark Mode");
@@ -7,6 +9,9 @@ void CreateUI(HWND hwnd) {
     SetMenu(hwnd, hMenuBar);
 
     hTab = CreateWindowW(WC_TABCONTROLW, L"", WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | WS_CLIPCHILDREN, 0, 0, 900, 700, hwnd, (HMENU)ID_TAB_CONTROL, NULL, NULL);
+
+    SetWindowSubclass(hTab, TabSubclassProc, 2, 0);
+
     TCITEMW tie = { 0 }; tie.mask = TCIF_TEXT;
     tie.pszText = L"JAR Scanner"; TabCtrl_InsertItem(hTab, 0, &tie);
     tie.pszText = L"Maven"; TabCtrl_InsertItem(hTab, 1, &tie);
@@ -48,7 +53,6 @@ void CreateUI(HWND hwnd) {
 
     hJarScanButton = CreateWindowW(L"BUTTON", L"Scan All Drives", WS_CHILD | WS_TABSTOP | BS_PUSHBUTTON, 0, 0, 10, 10, hwnd, (HMENU)ID_BUTTON_JAR_SCAN, NULL, NULL);
     hGlobalClassSearchButton = CreateWindowW(L"BUTTON", L"Search Class Methods", WS_CHILD | WS_TABSTOP | BS_PUSHBUTTON, 0, 0, 10, 10, hwnd, (HMENU)ID_BUTTON_GLOBAL_CLASS_SEARCH, NULL, NULL);
-    hFastScanButton = CreateWindowW(L"BUTTON", L"Enable fast (unstable) scan", WS_CHILD | WS_TABSTOP | BS_OWNERDRAW, 0, 0, 10, 10, hwnd, (HMENU)ID_BUTTON_FAST_SCAN, NULL, NULL);
     hNijikaImage = CreateWindowW(L"STATIC", L"", WS_CHILD | SS_OWNERDRAW, 0, 0, 10, 10, hwnd, (HMENU)ID_NIJIKA_IMAGE, NULL, NULL);
 
     hSearchMaven = CreateWindowW(L"EDIT", L"", WS_CHILD | WS_BORDER | ES_AUTOHSCROLL, 390, 35, 480, 20, hwnd, (HMENU)ID_SEARCH_MAVEN, NULL, NULL);
@@ -137,7 +141,6 @@ void CreateUI(HWND hwnd) {
     ShowWindow(hDescLabel, SW_SHOW);
     ShowWindow(hJarScanButton, SW_SHOW);
     ShowWindow(hGlobalClassSearchButton, SW_SHOW);
-    ShowWindow(hFastScanButton, SW_SHOW);
     ShowWindow(hNijikaImage, SW_SHOW);
 
     ShowWindow(hSortComboBox, SW_HIDE);

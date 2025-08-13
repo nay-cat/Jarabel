@@ -9,7 +9,7 @@ void SetupCustomHighlightColor() {
     g_originalHighlightTextColor = GetSysColor(COLOR_HIGHLIGHTTEXT);
 
     int elements[] = { COLOR_HIGHLIGHT, COLOR_HIGHLIGHTTEXT };
-    // dark blue (#00184D) and white
+    // highlight (blue) and white text
     COLORREF colors[] = { RGB(0, 120, 215), RGB(255, 255, 255) };
     SetSysColors(2, elements, colors);
 }
@@ -49,13 +49,9 @@ void InitImageResource(HINSTANCE hInstance) {
 
 void InitGdiResources() {
     g_darkBrush = CreateSolidBrush(g_darkBgColor);
-
-    g_darkBtnBrush = CreateSolidBrush(RGB(60, 60, 60));
-
-    g_darkTabBrush = CreateSolidBrush(RGB(45, 45, 45));
-
-    g_tabHighlightBrush = CreateSolidBrush(RGB(0, 120, 215));
-
+    g_darkBtnBrush = CreateSolidBrush(g_darkBtnColor);
+    g_darkTabBrush = CreateSolidBrush(g_darkTabColor);
+    g_tabHighlightBrush = CreateSolidBrush(g_highlightColor);
     g_lightBrush = GetSysColorBrush(COLOR_WINDOW);
 
     LOGFONTW lf = { 0 };
