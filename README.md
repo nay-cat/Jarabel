@@ -1,10 +1,12 @@
+> Please use Jarabel Light, dont use the Java version, is slow and has errors
+
 The name comes from Jar + Abelle
 
 ---
 ⭐ Recommended
 > [Jarabel Light](https://github.com/nay-cat/Jarabel/releases/download/light/Jarabel.Light.exe)
 
-> [Jarabel for Java 8](https://github.com/nay-cat/Jarabel/releases/download/final/Jarabel.Final.rar)
+> [Jarabel for Java 8](https://github.com/nay-cat/Jarabel/releases/download/light/Jarabel.Light.exe)
 ---
 
 ```diff
